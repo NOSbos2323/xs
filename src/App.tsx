@@ -1,5 +1,5 @@
 import React from "react";
-import { Routes, Route, useRoutes } from "react-router-dom";
+import { Routes, Route } from "react-router-dom";
 import { lazy, Suspense } from "react";
 
 // Lazy load components
@@ -17,45 +17,11 @@ const PageLoader = () => (
   </div>
 );
 
-// Tempo routes handler - only in development
-const TempoRoutes = () => {
-  if (process.env.NODE_ENV === "production") {
-    return null;
-  }
-
-  try {
-    if (import.meta.env.VITE_TEMPO) {
-      // Use dynamic import with proper error handling
-      import("tempo-routes")
-        .then((routes) => {
-          if (routes.default) {
-            return useRoutes(routes.default);
-          }
-        })
-        .catch((error) => {
-          console.warn("Tempo routes not available:", error);
-        });
-    }
-  } catch (error) {
-    console.warn("Tempo routes error:", error);
-  }
-  return null;
-};
-
 function App() {
   return (
     <div className="min-h-screen bg-background">
       <Suspense fallback={<PageLoader />}>
-        {/* Tempo routes for storyboards - only in development */}
-        {process.env.NODE_ENV === "development" && <TempoRoutes />}
-
         <Routes>
-          {/* Allow tempo to capture routes before catchall - only in development */}
-          {process.env.NODE_ENV === "development" &&
-            import.meta.env.VITE_TEMPO && (
-              <Route path="/tempobook/*" element={<div />} />
-            )}
-
           <Route path="/home" element={<Home />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/payments" element={<PaymentsPage />} />
