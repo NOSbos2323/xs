@@ -9,10 +9,15 @@ import {
   preloadCriticalResources,
 } from "./utils/performance";
 
+// Fix useLayoutEffect SSR warning by using useEffect on server
+if (typeof window === "undefined") {
+  React.useLayoutEffect = React.useEffect;
+}
+
 const basename = import.meta.env.BASE_URL;
 
 // Enhanced service worker registration with performance optimizations
-if ("serviceWorker" in navigator) {
+if (typeof window !== "undefined" && "serviceWorker" in navigator) {
   window.addEventListener("load", async () => {
     try {
       // Use Promise.allSettled for better error handling
@@ -54,14 +59,16 @@ export const NetworkStatusContext = React.createContext({
 });
 
 const NetworkProvider = ({ children }: { children: React.ReactNode }) => {
-  const [isOnline, setIsOnline] = React.useState(true);
+  const [isOnline, setIsOnline] = React.useState(() => {
+    if (typeof navigator !== "undefined") {
+      return navigator.onLine;
+    }
+    return true;
+  });
   const [mounted, setMounted] = React.useState(false);
 
   React.useEffect(() => {
     setMounted(true);
-    if (typeof navigator !== "undefined") {
-      setIsOnline(navigator.onLine);
-    }
   }, []);
 
   React.useEffect(() => {
@@ -86,24 +93,33 @@ const NetworkProvider = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
-// Performance monitoring
-if (process.env.NODE_ENV === "development") {
-  // Monitor performance in development
-  new PerformanceObserver((list) => {
-    for (const entry of list.getEntries()) {
-      if (entry.entryType === "measure") {
-        console.log(`Performance: ${entry.name} took ${entry.duration}ms`);
+// Performance monitoring - only in browser
+if (typeof window !== "undefined" && process.env.NODE_ENV === "development") {
+  try {
+    new PerformanceObserver((list) => {
+      for (const entry of list.getEntries()) {
+        if (entry.entryType === "measure") {
+          console.log(`Performance: ${entry.name} took ${entry.duration}ms`);
+        }
       }
-    }
-  }).observe({ entryTypes: ["measure"] });
+    }).observe({ entryTypes: ["measure"] });
+  } catch (error) {
+    console.warn("Performance observer failed:", error);
+  }
 }
 
-ReactDOM.createRoot(document.getElementById("root")!).render(
-  <React.StrictMode>
-    <NetworkProvider>
-      <BrowserRouter basename={basename}>
-        <App />
-      </BrowserRouter>
-    </NetworkProvider>
-  </React.StrictMode>,
-);
+// Only render on client side
+if (typeof window !== "undefined") {
+  const rootElement = document.getElementById("root");
+  if (rootElement) {
+    ReactDOM.createRoot(rootElement).render(
+      <React.StrictMode>
+        <NetworkProvider>
+          <BrowserRouter basename={basename}>
+            <App />
+          </BrowserRouter>
+        </NetworkProvider>
+      </React.StrictMode>,
+    );
+  }
+}

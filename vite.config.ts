@@ -295,15 +295,20 @@ export default defineConfig({
     include: [
       "react",
       "react-dom",
+      "react-dom/client",
       "react-router-dom",
       "localforage",
       "framer-motion",
       "lucide-react",
+      "@radix-ui/react-slot",
     ],
     exclude: ["tempo-devtools", "tempo-routes"],
     force: true,
     esbuildOptions: {
       target: "esnext",
+      define: {
+        global: "globalThis",
+      },
     },
   },
   // Enable esbuild optimizations

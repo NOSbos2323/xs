@@ -4,6 +4,10 @@ import { lazy, Suspense } from "react";
 import { createLazyComponent } from "./utils/performance";
 import PWAInstallBanner from "./components/ui/pwa-install-banner";
 
+// Fix useLayoutEffect SSR warning
+const useIsomorphicLayoutEffect =
+  typeof window !== "undefined" ? React.useLayoutEffect : React.useEffect;
+
 // Lazy load components for better performance
 const Home = createLazyComponent(() => import("./components/home"));
 const LoginPage = createLazyComponent(
@@ -28,13 +32,16 @@ function App() {
   const [tempoRoutes, setTempoRoutes] = useState<any[]>([]);
   const [routesLoaded, setRoutesLoaded] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [isClient, setIsClient] = useState(false);
 
+  // Check if we're on the client side
   useEffect(() => {
+    setIsClient(true);
     setMounted(true);
   }, []);
 
   useEffect(() => {
-    if (!mounted) return;
+    if (!mounted || !isClient) return;
 
     const loadRoutes = async () => {
       if (import.meta.env.VITE_TEMPO) {
@@ -52,11 +59,14 @@ function App() {
       }
       setRoutesLoaded(true);
     };
-    loadRoutes();
-  }, [mounted]);
 
-  // Don't render anything until mounted and routes are loaded to prevent hydration issues
-  if (!mounted || !routesLoaded) {
+    // Add a small delay to ensure client-side hydration is complete
+    const timer = setTimeout(loadRoutes, 100);
+    return () => clearTimeout(timer);
+  }, [mounted, isClient]);
+
+  // Don't render anything until client-side and routes are loaded
+  if (!isClient || !mounted || !routesLoaded) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
         <div className="text-center">
