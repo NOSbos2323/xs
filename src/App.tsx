@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Routes, Route, useRoutes } from "react-router-dom";
 import { lazy, Suspense } from "react";
 import { createLazyComponent } from "./utils/performance";
@@ -27,7 +27,7 @@ function App() {
   // Initialize routes conditionally
   const [tempoRoutes, setTempoRoutes] = React.useState<any[]>([]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const loadRoutes = async () => {
       if (import.meta.env.VITE_TEMPO) {
         try {
