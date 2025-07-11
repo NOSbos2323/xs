@@ -1,10 +1,10 @@
 // Enhanced Service Worker for Amino Gym PWA with complete offline support
-const CACHE_NAME = "amino-gym-v4";
-const STATIC_CACHE = "amino-gym-static-v4";
-const DYNAMIC_CACHE = "amino-gym-dynamic-v4";
-const IMAGE_CACHE = "amino-gym-images-v4";
-const API_CACHE = "amino-gym-api-v4";
-const FONT_CACHE = "amino-gym-fonts-v4";
+const CACHE_NAME = "amino-gym-v5";
+const STATIC_CACHE = "amino-gym-static-v5";
+const DYNAMIC_CACHE = "amino-gym-dynamic-v5";
+const IMAGE_CACHE = "amino-gym-images-v5";
+const API_CACHE = "amino-gym-api-v5";
+const FONT_CACHE = "amino-gym-fonts-v5";
 
 // Critical resources to cache immediately for offline functionality
 const CRITICAL_RESOURCES = [
@@ -12,6 +12,7 @@ const CRITICAL_RESOURCES = [
   "/index.html",
   "/home",
   "/login",
+  "/payments",
   "/yacin-gym-logo.png",
   "/success-sound.mp3",
   "/manifest.json",
@@ -27,6 +28,8 @@ const APP_ROUTES = [
   "/settings",
   "/payments",
   "/attendance",
+  "/members",
+  "/dashboard",
 ];
 
 // Static assets that rarely change - cache aggressively
@@ -141,8 +144,8 @@ self.addEventListener("fetch", (event) => {
   ) {
     // Images - Cache First with offline fallback
     event.respondWith(cacheFirstStrategy(request, IMAGE_CACHE));
-  } else if (url.pathname.match(/\.(js|css)$/)) {
-    // JS/CSS - Cache First for offline functionality
+  } else if (url.pathname.match(/\.(js|css|mjs)$/)) {
+    // JS/CSS/MJS - Cache First for offline functionality
     event.respondWith(cacheFirstStrategy(request, STATIC_CACHE));
   } else if (url.pathname.match(/\.(woff2?|woff|ttf|eot|otf)$/)) {
     // Fonts - Cache First with long-term storage
@@ -153,6 +156,12 @@ self.addEventListener("fetch", (event) => {
   } else if (request.mode === "navigate") {
     // Navigation requests - Offline-capable routing
     event.respondWith(handleNavigation(request));
+  } else if (
+    url.pathname.includes("@") ||
+    url.pathname.includes("node_modules")
+  ) {
+    // Module imports - Cache First
+    event.respondWith(cacheFirstStrategy(request, STATIC_CACHE));
   } else {
     // Other requests - Offline First
     event.respondWith(offlineFirstStrategy(request, DYNAMIC_CACHE));

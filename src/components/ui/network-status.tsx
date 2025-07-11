@@ -1,5 +1,4 @@
-// Network status component removed as requested
-// The app works offline and no notifications are needed
+// Network status component - completely removed for offline functionality
 export default function NetworkStatus() {
   return null;
 }
