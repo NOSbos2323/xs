@@ -13,7 +13,9 @@ import {
   Edit,
   PhoneCall,
   Send,
+  Search,
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { getAllMembers, Member, updateMember } from "@/services/memberService";
 import { formatDate, formatNumber } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -288,37 +290,64 @@ const PendingPaymentsPage = ({ onBack }: PendingPaymentsPageProps) => {
             <div className="p-3 sm:p-4 border-b border-slate-700/30">
               {/* Title */}
               <div className="text-center mb-4">
-                <h2 className="text-xl sm:text-2xl font-bold text-white">
+                <h2 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-yellow-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">
                   المدفوعات المعلقة
                 </h2>
+              </div>
+
+              {/* Search Field - Mobile Only */}
+              <div className="lg:hidden mb-4">
+                <div className="relative w-full">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute left-1 top-1 h-8 w-8 text-gray-400 hover:text-white z-10"
+                  >
+                    <Search className="h-4 w-4" />
+                  </Button>
+                  <Input
+                    placeholder="بحث عن عضو..."
+                    className="pl-10 pr-4 bg-bluegray-700/50 backdrop-blur-xl border-bluegray-600/50 focus:border-yellow-400 text-white shadow-lg"
+                  />
+                </div>
               </div>
 
               {/* Filter Buttons */}
               <div className="flex flex-wrap gap-2 justify-center mb-3">
                 <Button
-                  variant={selectedPeriod === "all" ? "default" : "outline"}
+                  variant="outline"
                   size="sm"
-                  className="text-xs"
+                  className={`text-xs backdrop-blur-sm bg-bluegray-700/50 border-bluegray-600 hover:bg-bluegray-600 text-white transition-all duration-300 hover:scale-105 ${
+                    selectedPeriod === "all"
+                      ? "bg-gradient-to-r from-yellow-500/30 to-blue-500/30 border-yellow-400/50"
+                      : ""
+                  }`}
                   onClick={() => setSelectedPeriod("all")}
                 >
                   الكل ({allUnpaidMembers.length})
                 </Button>
 
                 <Button
-                  variant={selectedPeriod === "today" ? "default" : "outline"}
+                  variant="outline"
                   size="sm"
-                  className="text-xs"
+                  className={`text-xs backdrop-blur-sm bg-bluegray-700/50 border-bluegray-600 hover:bg-bluegray-600 text-white transition-all duration-300 hover:scale-105 ${
+                    selectedPeriod === "today"
+                      ? "bg-gradient-to-r from-yellow-500/30 to-blue-500/30 border-yellow-400/50"
+                      : ""
+                  }`}
                   onClick={() => setSelectedPeriod("today")}
                 >
                   اليوم ({getTodayCount()})
                 </Button>
 
                 <Button
-                  variant={
-                    selectedPeriod === "thisMonth" ? "default" : "outline"
-                  }
+                  variant="outline"
                   size="sm"
-                  className="text-xs"
+                  className={`text-xs backdrop-blur-sm bg-bluegray-700/50 border-bluegray-600 hover:bg-bluegray-600 text-white transition-all duration-300 hover:scale-105 ${
+                    selectedPeriod === "thisMonth"
+                      ? "bg-gradient-to-r from-yellow-500/30 to-blue-500/30 border-yellow-400/50"
+                      : ""
+                  }`}
                   onClick={() => setSelectedPeriod("thisMonth")}
                 >
                   هذا الشهر (
@@ -337,11 +366,13 @@ const PendingPaymentsPage = ({ onBack }: PendingPaymentsPageProps) => {
                 </Button>
 
                 <Button
-                  variant={
-                    selectedPeriod === "lastMonth" ? "default" : "outline"
-                  }
+                  variant="outline"
                   size="sm"
-                  className="text-xs"
+                  className={`text-xs backdrop-blur-sm bg-bluegray-700/50 border-bluegray-600 hover:bg-bluegray-600 text-white transition-all duration-300 hover:scale-105 ${
+                    selectedPeriod === "lastMonth"
+                      ? "bg-gradient-to-r from-yellow-500/30 to-blue-500/30 border-yellow-400/50"
+                      : ""
+                  }`}
                   onClick={() => setSelectedPeriod("lastMonth")}
                 >
                   الشهر الماضي (
@@ -368,9 +399,13 @@ const PendingPaymentsPage = ({ onBack }: PendingPaymentsPageProps) => {
                 </Button>
 
                 <Button
-                  variant={selectedPeriod === "expired" ? "default" : "outline"}
+                  variant="outline"
                   size="sm"
-                  className="text-xs"
+                  className={`text-xs backdrop-blur-sm bg-bluegray-700/50 border-bluegray-600 hover:bg-bluegray-600 text-white transition-all duration-300 hover:scale-105 ${
+                    selectedPeriod === "expired"
+                      ? "bg-gradient-to-r from-yellow-500/30 to-blue-500/30 border-yellow-400/50"
+                      : ""
+                  }`}
                   onClick={() => setSelectedPeriod("expired")}
                 >
                   منتهية (

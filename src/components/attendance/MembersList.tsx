@@ -651,63 +651,53 @@ const MembersList = () => {
                     {member.name}
                   </h3>
                   <div className="space-y-2">
-                    <p className="text-xs sm:text-sm text-gray-300">
-                      آخر حضور: {formatDate(member.lastAttendance)}
-                    </p>
-                    {member.subscriptionType &&
-                      member.sessionsRemaining !== undefined && (
-                        <Badge className="bg-gradient-to-r from-blue-500 to-purple-600 text-white text-xs">
-                          {formatNumber(member.sessionsRemaining)} /{" "}
-                          {member.subscriptionType.split(" ")[0]} حصة
-                        </Badge>
-                      )}
-                  </div>
-
-                  {member.membershipType && (
-                    <p className="text-xs text-gray-400 mb-2 sm:mb-4">
-                      نوع العضوية: {member.membershipType}
-                    </p>
-                  )}
-
-                  <div className="flex flex-col gap-2 mt-3">
-                    <Button
-                      className="w-full bg-gradient-to-r from-yellow-500 to-blue-600 hover:from-yellow-600 hover:to-blue-700 text-white text-sm py-2.5 font-medium shadow-lg hover:shadow-xl transition-all duration-300"
-                      onClick={() => handleMarkAttendance(member.id)}
-                    >
-                      تسجيل حضور
-                    </Button>
-
-                    <div className="flex gap-1.5">
+                    <div className="flex items-center justify-between gap-2">
+                      {member.subscriptionType &&
+                        member.sessionsRemaining !== undefined && (
+                          <Badge className="bg-gradient-to-r from-blue-500 to-purple-600 text-white text-xs">
+                            {formatNumber(member.sessionsRemaining)} /{" "}
+                            {member.subscriptionType.split(" ")[0]} حصة
+                          </Badge>
+                        )}
                       <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1 h-9 border-bluegray-600 hover:bg-bluegray-600 text-blue-400 text-xs"
-                        onClick={() => handleOpenEditDialog(member)}
+                        className="bg-gradient-to-r from-yellow-500 to-blue-600 hover:from-yellow-600 hover:to-blue-700 text-white text-xs py-1.5 px-3 font-medium shadow-lg hover:shadow-xl transition-all duration-300"
+                        onClick={() => handleMarkAttendance(member.id)}
                       >
-                        <Edit className="h-3 w-3 mr-1" />
-                        تعديل
-                      </Button>
-
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1 h-9 border-bluegray-600 hover:bg-bluegray-600 text-yellow-400 text-xs"
-                        onClick={() => handleOpenNoteDialog(member)}
-                      >
-                        <FileText className="h-3 w-3 mr-1" />
-                        ملاحظة
-                      </Button>
-
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-9 w-9 p-0 border-bluegray-600 hover:bg-bluegray-600 text-purple-400 hover:text-purple-300 transition-all duration-300 hover:scale-110"
-                        onClick={() => handleOpenAttendanceHistory(member)}
-                        title="سجل الحضور"
-                      >
-                        <History className="h-3.5 w-3.5" />
+                        تسجيل حضور
                       </Button>
                     </div>
+                  </div>
+
+                  <div className="flex gap-1.5 mt-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 h-8 border-bluegray-600 hover:bg-bluegray-600 text-blue-400 text-xs"
+                      onClick={() => handleOpenEditDialog(member)}
+                    >
+                      <Edit className="h-3 w-3 mr-1" />
+                      تعديل
+                    </Button>
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 h-8 border-bluegray-600 hover:bg-bluegray-600 text-yellow-400 text-xs"
+                      onClick={() => handleOpenNoteDialog(member)}
+                    >
+                      <FileText className="h-3 w-3 mr-1" />
+                      ملاحظة
+                    </Button>
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 w-8 p-0 border-bluegray-600 hover:bg-bluegray-600 text-purple-400 hover:text-purple-300 transition-all duration-300 hover:scale-110"
+                      onClick={() => handleOpenAttendanceHistory(member)}
+                      title="سجل الحضور"
+                    >
+                      <History className="h-3.5 w-3.5" />
+                    </Button>
                   </div>
                 </CardContent>
               </Card>

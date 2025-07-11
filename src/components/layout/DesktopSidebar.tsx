@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import {
   Settings,
   LogOut,
@@ -47,6 +48,7 @@ const DesktopSidebar = ({
   onSearchClick = () => {},
   onUserGuideClick = () => {},
 }: DesktopSidebarProps) => {
+  const navigate = useNavigate();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isPricingDialogOpen, setIsPricingDialogOpen] = useState(false);
   const [isUserSettingsDialogOpen, setIsUserSettingsDialogOpen] =
@@ -768,7 +770,99 @@ const DesktopSidebar = ({
   };
 
   const handleSearch = () => {
+    // First, switch to the attendance tab to show MembersList
     onSearchClick();
+
+    // Enhanced focus function specifically for the filter input
+    const focusFilterInput = () => {
+      // Look specifically for the filter input in MembersList
+      const filterInput = document.querySelector(
+        'input[placeholder="بحث عن عضو..."]',
+      ) as HTMLInputElement;
+
+      if (filterInput) {
+        // Remove any readonly attributes
+        filterInput.removeAttribute("readonly");
+        filterInput.removeAttribute("disabled");
+
+        // Scroll the input into view
+        filterInput.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+          inline: "nearest",
+        });
+
+        // Detect mobile devices
+        const isMobile =
+          /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+            navigator.userAgent,
+          ) ||
+          "ontouchstart" in window ||
+          window.innerWidth <= 768;
+
+        if (isMobile) {
+          // Mobile-specific approach
+          setTimeout(() => {
+            // Set input attributes for better mobile experience
+            filterInput.setAttribute("inputmode", "search");
+            filterInput.setAttribute("autocomplete", "off");
+            filterInput.setAttribute("autocorrect", "off");
+            filterInput.setAttribute("autocapitalize", "off");
+            filterInput.setAttribute("spellcheck", "false");
+
+            // Create a user interaction event to bypass mobile restrictions
+            const touchEvent = new TouchEvent("touchstart", {
+              bubbles: true,
+              cancelable: true,
+              composed: true,
+            });
+            filterInput.dispatchEvent(touchEvent);
+
+            // Focus with multiple attempts
+            filterInput.focus();
+            filterInput.click();
+
+            // Trigger additional events to ensure keyboard appears
+            setTimeout(() => {
+              filterInput.focus();
+              filterInput.select();
+
+              // Dispatch input event to trigger any listeners
+              const inputEvent = new Event("input", { bubbles: true });
+              filterInput.dispatchEvent(inputEvent);
+
+              // Final focus attempt
+              setTimeout(() => {
+                filterInput.focus();
+              }, 50);
+            }, 100);
+          }, 50);
+        } else {
+          // Desktop approach
+          setTimeout(() => {
+            filterInput.focus();
+            filterInput.select();
+          }, 50);
+        }
+
+        return true;
+      }
+      return false;
+    };
+
+    // Try to focus the filter input with multiple attempts
+    // First attempt after a short delay to allow tab switching
+    setTimeout(() => {
+      if (!focusFilterInput()) {
+        // Second attempt after more time for component to render
+        setTimeout(() => {
+          if (!focusFilterInput()) {
+            // Final attempt with longer delay
+            setTimeout(focusFilterInput, 800);
+          }
+        }, 400);
+      }
+    }, 200);
   };
 
   return (

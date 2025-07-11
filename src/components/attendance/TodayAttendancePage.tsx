@@ -266,69 +266,7 @@ const TodayAttendancePage = ({ onBack }: TodayAttendancePageProps) => {
       <TopMobileNavigation activeItem="attendance" setActiveItem={() => {}} />
 
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
-        <div className="container mx-auto px-3 sm:px-4 pt-20 pb-36 sm:pb-32 lg:pt-6 lg:pb-6">
-          {/* Statistics Cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6">
-            <Card className="overflow-hidden bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-xl border border-slate-600/50 shadow-2xl hover:shadow-3xl transition-all duration-500 hover:border-slate-500/60">
-              <CardContent className="p-4 sm:p-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <div className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-yellow-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">
-                      {formatNumber(todayAttendees.length)}
-                    </div>
-                    <div className="text-sm text-gray-300 mt-1 font-medium">
-                      إجمالي الحضور
-                    </div>
-                  </div>
-                  <div className="bg-gradient-to-br from-yellow-500/20 via-blue-500/20 to-purple-500/20 p-3 sm:p-4 rounded-2xl border border-white/10 shadow-lg">
-                    <Users className="h-6 w-6 sm:h-7 sm:w-7 text-blue-400" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="overflow-hidden bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-xl border border-slate-600/50 shadow-2xl hover:shadow-3xl transition-all duration-500 hover:border-slate-500/60">
-              <CardContent className="p-4 sm:p-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <div className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-yellow-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">
-                      {formatNumber(
-                        todayAttendees.filter((a) => !a.isSessionPayment)
-                          .length,
-                      )}
-                    </div>
-                    <div className="text-sm text-gray-300 mt-1 font-medium">
-                      أعضاء مشتركين
-                    </div>
-                  </div>
-                  <div className="bg-gradient-to-br from-yellow-500/20 via-blue-500/20 to-purple-500/20 p-3 sm:p-4 rounded-2xl border border-white/10 shadow-lg">
-                    <CheckCircle className="h-6 w-6 sm:h-7 sm:w-7 text-emerald-400" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="overflow-hidden bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-xl border border-slate-600/50 shadow-2xl hover:shadow-3xl transition-all duration-500 hover:border-slate-500/60">
-              <CardContent className="p-4 sm:p-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <div className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-yellow-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">
-                      {formatNumber(
-                        todayAttendees.filter((a) => a.isSessionPayment).length,
-                      )}
-                    </div>
-                    <div className="text-sm text-gray-300 mt-1 font-medium">
-                      حصص مؤقتة
-                    </div>
-                  </div>
-                  <div className="bg-gradient-to-br from-yellow-500/20 via-blue-500/20 to-purple-500/20 p-3 sm:p-4 rounded-2xl border border-white/10 shadow-lg">
-                    <Clock className="h-6 w-6 sm:h-7 sm:w-7 text-purple-400" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
+        <div className="container mx-auto px-3 sm:px-4 pt-2 pb-36 sm:pb-32 lg:pt-6 lg:pb-6">
           {/* Header */}
           <div className="text-center mb-6">
             <div className="flex items-center justify-center gap-3 mb-2">
@@ -336,15 +274,6 @@ const TodayAttendancePage = ({ onBack }: TodayAttendancePageProps) => {
               <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
                 حضور اليوم
               </h1>
-            </div>
-            <p className="text-gray-300 text-sm mb-2">
-              {formatDate(new Date().toISOString())}
-            </p>
-            <div className="flex items-center justify-center gap-2">
-              <CheckCircle className="h-5 w-5 text-green-400" />
-              <span className="text-green-400 font-semibold">
-                {formatNumber(todayAttendees.length)} حاضر
-              </span>
             </div>
           </div>
 
@@ -577,10 +506,7 @@ const TodayAttendancePage = ({ onBack }: TodayAttendancePageProps) => {
                                     <p>📱 {attendee.phoneNumber}</p>
                                   )}
                                   {attendee.email && <p>📧 {attendee.email}</p>}
-                                  <p>
-                                    🕐 وقت الحضور:{" "}
-                                    {formatTimeAlgeria(attendee.lastAttendance)}
-                                  </p>
+
                                   {!attendee.isSessionPayment &&
                                     attendee.sessionsRemaining !==
                                       undefined && (

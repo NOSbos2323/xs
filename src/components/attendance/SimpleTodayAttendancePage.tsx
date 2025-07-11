@@ -81,15 +81,6 @@ const SimpleTodayAttendancePage = () => {
               حضور اليوم
             </h2>
           </div>
-          <p className="text-gray-300 text-sm mb-2">
-            {formatDate(new Date().toISOString())}
-          </p>
-          <div className="flex items-center justify-center gap-2">
-            <CheckCircle className="h-5 w-5 text-green-400" />
-            <span className="text-green-400 font-semibold">
-              {formatNumber(todayAttendees.length)} حاضر
-            </span>
-          </div>
         </div>
 
         {/* Statistics */}
@@ -168,9 +159,6 @@ const SimpleTodayAttendancePage = () => {
           </div>
         ) : (
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-white mb-4 px-2">
-              قائمة الحضور ({formatNumber(todayAttendees.length)} عضو)
-            </h3>
             {todayAttendees.map((attendee, index) => (
               <div
                 key={attendee.id || index}

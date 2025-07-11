@@ -576,13 +576,77 @@ const TopMobileNavigation = ({
   };
 
   const handleSearch = () => {
-    if (isSearchActive) {
-      // Perform search with the query
-      console.log("Searching for:", searchQuery);
-      // You can implement actual search functionality here
-    } else {
-      // Activate search mode
-      setIsSearchActive(true);
+    // Enhanced focus function specifically for the filter input
+    const focusFilterInput = () => {
+      // Look specifically for the filter input in MembersList
+      const filterInput = document.querySelector(
+        'input[placeholder="بحث عن عضو..."]',
+      ) as HTMLInputElement;
+
+      if (filterInput) {
+        // Remove any readonly attributes
+        filterInput.removeAttribute("readonly");
+        filterInput.removeAttribute("disabled");
+
+        // Scroll the input into view
+        filterInput.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+          inline: "nearest",
+        });
+
+        // Mobile-specific approach for triggering keyboard
+        setTimeout(() => {
+          // Set input attributes for better mobile experience
+          filterInput.setAttribute("inputmode", "search");
+          filterInput.setAttribute("autocomplete", "off");
+          filterInput.setAttribute("autocorrect", "off");
+          filterInput.setAttribute("autocapitalize", "off");
+          filterInput.setAttribute("spellcheck", "false");
+
+          // Create a user interaction event to bypass mobile restrictions
+          const touchEvent = new TouchEvent("touchstart", {
+            bubbles: true,
+            cancelable: true,
+            composed: true,
+          });
+          filterInput.dispatchEvent(touchEvent);
+
+          // Focus with multiple attempts
+          filterInput.focus();
+          filterInput.click();
+
+          // Trigger additional events to ensure keyboard appears
+          setTimeout(() => {
+            filterInput.focus();
+            filterInput.select();
+
+            // Dispatch input event to trigger any listeners
+            const inputEvent = new Event("input", { bubbles: true });
+            filterInput.dispatchEvent(inputEvent);
+
+            // Final focus attempt
+            setTimeout(() => {
+              filterInput.focus();
+            }, 50);
+          }, 100);
+        }, 50);
+
+        return true;
+      }
+      return false;
+    };
+
+    // Try to focus the filter input with multiple attempts
+    // First attempt immediately
+    if (!focusFilterInput()) {
+      // Second attempt after short delay
+      setTimeout(() => {
+        if (!focusFilterInput()) {
+          // Final attempt with longer delay
+          setTimeout(focusFilterInput, 400);
+        }
+      }, 200);
     }
   };
 
