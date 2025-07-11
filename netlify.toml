@@ -1,14 +1,15 @@
 # netlify.toml
 [build]
   publish = "dist"
-  command = "npm run build-no-errors"
+  command = "npm run build"
 
 # Environment variables for build
 [build.environment]
-  NODE_VERSION = "18"
-  NPM_VERSION = "9"
+  NODE_VERSION = "20"
+  NPM_VERSION = "10"
   VITE_TEMPO = "false"
   CI = "true"
+  NODE_OPTIONS = "--max-old-space-size=4096"
 
 # Headers for PWA support
 [[headers]]

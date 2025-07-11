@@ -6,7 +6,7 @@ import { resolve } from "path";
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  base: "/",
+  base: process.env.NODE_ENV === "production" ? "/" : "/",
   plugins: [
     react({
       // Enable React Fast Refresh optimizations
@@ -14,8 +14,9 @@ export default defineConfig({
       // Use SWC for faster compilation
       jsxImportSource: undefined,
     }),
-    ...(import.meta.env?.VITE_TEMPO === "true" ||
-    process.env.VITE_TEMPO === "true"
+    ...(process.env.NODE_ENV === "development" &&
+    (import.meta.env?.VITE_TEMPO === "true" ||
+      process.env.VITE_TEMPO === "true")
       ? [tempo()]
       : []),
     VitePWA({
@@ -189,10 +190,11 @@ export default defineConfig({
     },
   },
   build: {
-    target: "esnext",
-    minify: "terser",
+    target: "es2020",
+    minify: "esbuild",
     outDir: "dist",
     emptyOutDir: true,
+    cssMinify: true,
     terserOptions: {
       compress: {
         drop_console: true,
@@ -258,9 +260,12 @@ export default defineConfig({
         },
       },
     },
-    chunkSizeWarningLimit: 1000,
+    chunkSizeWarningLimit: 1500,
     sourcemap: false,
     cssCodeSplit: true,
+    modulePreload: {
+      polyfill: false,
+    },
     // Enable tree shaking
     treeshake: {
       moduleSideEffects: false,
@@ -274,10 +279,12 @@ export default defineConfig({
   server: {
     // @ts-ignore
     allowedHosts: process.env.TEMPO === "true" ? true : undefined,
-    strictPort: true,
+    strictPort: false,
+    port: 5173,
     // Performance optimizations
     hmr: {
-      overlay: false, // Disable error overlay for better performance
+      overlay: true,
+      port: 24678,
     },
     fs: {
       strict: true,
@@ -301,11 +308,13 @@ export default defineConfig({
       "framer-motion",
       "lucide-react",
       "@radix-ui/react-slot",
+      "clsx",
+      "tailwind-merge",
     ],
     exclude: ["tempo-devtools", "tempo-routes"],
-    force: true,
+    force: false,
     esbuildOptions: {
-      target: "esnext",
+      target: "es2020",
       define: {
         global: "globalThis",
       },
@@ -313,10 +322,12 @@ export default defineConfig({
   },
   // Enable esbuild optimizations
   esbuild: {
-    target: "esnext",
+    target: "es2020",
     minifyIdentifiers: true,
     minifySyntax: true,
     minifyWhitespace: true,
     treeShaking: true,
+    jsxFactory: "React.createElement",
+    jsxFragment: "React.Fragment",
   },
 });
