@@ -6,7 +6,7 @@ import { resolve } from "path";
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  base: process.env.NODE_ENV === "production" ? "/" : "/",
+  base: "/",
   plugins: [
     react({
       // Enable React Fast Refresh optimizations
@@ -14,9 +14,8 @@ export default defineConfig({
       // Use SWC for faster compilation
       jsxImportSource: undefined,
     }),
-    ...(process.env.NODE_ENV === "development" &&
-    (import.meta.env?.VITE_TEMPO === "true" ||
-      process.env.VITE_TEMPO === "true")
+    ...(import.meta.env?.VITE_TEMPO === "true" ||
+    process.env.VITE_TEMPO === "true"
       ? [tempo()]
       : []),
     VitePWA({
@@ -281,11 +280,8 @@ export default defineConfig({
     allowedHosts: process.env.TEMPO === "true" ? true : undefined,
     strictPort: false,
     port: 5173,
-    // Performance optimizations
-    hmr: {
-      overlay: true,
-      port: 24678,
-    },
+    host: true,
+    hmr: true,
     fs: {
       strict: true,
       allow: [
@@ -294,10 +290,9 @@ export default defineConfig({
         resolve(__dirname, "public"),
         resolve(__dirname, "node_modules"),
       ],
-      deny: ["/home", "/root", "/etc", "/usr", "/var", "/tmp"],
     },
   },
-  // Optimize dependencies
+  // Optimize dependencies with better WebSocket handling
   optimizeDeps: {
     include: [
       "react",
@@ -312,7 +307,6 @@ export default defineConfig({
       "tailwind-merge",
     ],
     exclude: ["tempo-devtools", "tempo-routes"],
-    force: false,
     esbuildOptions: {
       target: "es2020",
       define: {

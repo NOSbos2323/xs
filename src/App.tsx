@@ -4,10 +4,6 @@ import { lazy, Suspense } from "react";
 import { createLazyComponent } from "./utils/performance";
 import PWAInstallBanner from "./components/ui/pwa-install-banner";
 
-// Fix useLayoutEffect SSR warning
-const useIsomorphicLayoutEffect =
-  typeof window !== "undefined" ? React.useLayoutEffect : React.useEffect;
-
 // Lazy load components for better performance
 const Home = createLazyComponent(() => import("./components/home"));
 const LoginPage = createLazyComponent(
@@ -28,45 +24,18 @@ const PageLoader = () => (
 );
 
 function App() {
-  // Initialize routes conditionally
-  const [tempoRoutes, setTempoRoutes] = useState<any[]>([]);
-  const [routesLoaded, setRoutesLoaded] = useState(false);
-  const [mounted, setMounted] = useState(false);
-  const [isClient, setIsClient] = useState(false);
+  const [isReady, setIsReady] = useState(false);
 
-  // Check if we're on the client side
   useEffect(() => {
-    setIsClient(true);
-    setMounted(true);
+    // Simple initialization without complex async operations
+    const timer = setTimeout(() => {
+      setIsReady(true);
+    }, 100);
+
+    return () => clearTimeout(timer);
   }, []);
 
-  useEffect(() => {
-    if (!mounted || !isClient) return;
-
-    const loadRoutes = async () => {
-      if (import.meta.env.VITE_TEMPO) {
-        try {
-          // Use dynamic import with a variable to avoid TypeScript module resolution issues
-          const moduleName = "tempo-routes";
-          const routesModule = await import(/* @vite-ignore */ moduleName);
-          setTempoRoutes(routesModule.default || []);
-        } catch (error) {
-          console.log("Tempo routes not available:", error);
-          setTempoRoutes([]);
-        }
-      } else {
-        setTempoRoutes([]);
-      }
-      setRoutesLoaded(true);
-    };
-
-    // Add a small delay to ensure client-side hydration is complete
-    const timer = setTimeout(loadRoutes, 100);
-    return () => clearTimeout(timer);
-  }, [mounted, isClient]);
-
-  // Don't render anything until client-side and routes are loaded
-  if (!isClient || !mounted || !routesLoaded) {
+  if (!isReady) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
         <div className="text-center">
@@ -77,11 +46,18 @@ function App() {
     );
   }
 
-  // Render tempo routes if available
-  const tempoRoutesElement =
-    import.meta.env.VITE_TEMPO && tempoRoutes.length > 0
-      ? useRoutes(tempoRoutes)
-      : null;
+  // Try to render tempo routes if available
+  let tempoRoutesElement = null;
+  if (typeof window !== "undefined" && import.meta.env.VITE_TEMPO === "true") {
+    try {
+      const routes = require("tempo-routes").default || [];
+      if (Array.isArray(routes) && routes.length > 0) {
+        tempoRoutesElement = useRoutes(routes);
+      }
+    } catch (error) {
+      // Silently handle tempo routes not being available
+    }
+  }
 
   // If tempo routes match, render them
   if (tempoRoutesElement) {
@@ -102,7 +78,7 @@ function App() {
           <Route path="/payments" element={<PaymentsPage />} />
 
           {/* Add this before the catchall route */}
-          {import.meta.env.VITE_TEMPO && (
+          {import.meta.env.VITE_TEMPO === "true" && (
             <Route path="/tempobook/*" element={<div />} />
           )}
 
