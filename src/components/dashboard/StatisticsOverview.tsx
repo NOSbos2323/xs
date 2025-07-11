@@ -136,6 +136,15 @@ const StatisticsOverview = () => {
   const [editFormData, setEditFormData] = useState<Partial<Member>>({});
 
   useEffect(() => {
+    // Listen for pricing updates to refresh statistics
+    const handlePricingUpdate = () => {
+      console.log("StatisticsOverview: Pricing updated, refreshing statistics");
+      // Add a small delay to ensure localStorage is updated
+      setTimeout(() => {
+        fetchData();
+      }, 200);
+    };
+
     const fetchData = async () => {
       setIsLoading(true);
       try {
@@ -145,6 +154,10 @@ const StatisticsOverview = () => {
 
         // Fetch all payments first
         const payments = await getAllPayments();
+
+        window.addEventListener("pricing-updated", handlePricingUpdate);
+        window.addEventListener("storage", handlePricingUpdate);
+        window.addEventListener("paymentsUpdated", handlePricingUpdate);
 
         // Calculate today's attendance (including single sessions)
         const today = new Date().toISOString().split("T")[0];
@@ -297,8 +310,13 @@ const StatisticsOverview = () => {
       fetchData();
     }, 300000); // 5 minutes
 
-    // Clean up interval on component unmount
-    return () => clearInterval(intervalId);
+    // Clean up interval and event listeners on component unmount
+    return () => {
+      clearInterval(intervalId);
+      window.removeEventListener("pricing-updated", handlePricingUpdate);
+      window.removeEventListener("storage", handlePricingUpdate);
+      window.removeEventListener("paymentsUpdated", handlePricingUpdate);
+    };
   }, []);
 
   const handleRemoveFromUnpaidList = async (member: Member) => {

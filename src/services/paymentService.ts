@@ -271,7 +271,7 @@ export const calculateSubscriptionPrice = (
     return 1000; // Default price
   }
 
-  // Load custom pricing from localStorage
+  // Load custom pricing from localStorage with fresh read every time
   const savedPricing = localStorage.getItem("gymPricingSettings");
   let pricing = {
     singleSession: 200,
@@ -284,17 +284,20 @@ export const calculateSubscriptionPrice = (
     try {
       const parsedPricing = JSON.parse(savedPricing);
       pricing = {
-        singleSession: parsedPricing.singleSession || 200,
-        sessions13: parsedPricing.sessions13 || 1500,
-        sessions15: parsedPricing.sessions15 || 1800,
-        sessions30: parsedPricing.sessions30 || 1800,
+        singleSession: Number(parsedPricing.singleSession) || 200,
+        sessions13: Number(parsedPricing.sessions13) || 1500,
+        sessions15: Number(parsedPricing.sessions15) || 1800,
+        sessions30: Number(parsedPricing.sessions30) || 1800,
       };
     } catch (error) {
       console.error("Error loading pricing settings:", error);
     }
   }
 
-  switch (subscriptionType.trim()) {
+  // Normalize subscription type for consistent matching
+  const normalizedType = subscriptionType.trim();
+
+  switch (normalizedType) {
     case "شهري":
       return pricing.sessions13;
     case "13 حصة":
@@ -306,6 +309,14 @@ export const calculateSubscriptionPrice = (
     case "حصة واحدة":
       return pricing.singleSession;
     default:
+      // For any unknown subscription type, try to match by number
+      if (normalizedType.includes("13")) {
+        return pricing.sessions13;
+      } else if (normalizedType.includes("15")) {
+        return pricing.sessions15;
+      } else if (normalizedType.includes("30")) {
+        return pricing.sessions30;
+      }
       return pricing.sessions13;
   }
 };
@@ -318,11 +329,26 @@ export const getPaymentStatistics = async () => {
   const { getAllMembers } = await import("./memberService");
   const members = await getAllMembers();
 
-  // Helper function to safely sum amounts
-  const safeSum = (paymentList: Payment[]) => {
+  // Helper function to recalculate payment amount based on current pricing
+  const recalculatePaymentAmount = (payment: Payment): number => {
+    // Always use current pricing for all subscription types to ensure consistency
+    if (payment.subscriptionType) {
+      // Force fresh pricing calculation
+      const currentPrice = calculateSubscriptionPrice(payment.subscriptionType);
+      console.log(
+        `Recalculating price for ${payment.subscriptionType}: ${currentPrice}`,
+      );
+      return currentPrice;
+    }
+    // Fallback to stored amount if no subscription type
+    const amount = Number(payment.amount);
+    return isNaN(amount) || !isFinite(amount) ? 0 : amount;
+  };
+
+  // Helper function to safely sum amounts with current pricing
+  const safeSumWithCurrentPricing = (paymentList: Payment[]) => {
     return paymentList.reduce((sum, payment) => {
-      const amount = Number(payment.amount);
-      return sum + (isNaN(amount) || !isFinite(amount) ? 0 : amount);
+      return sum + recalculatePaymentAmount(payment);
     }, 0);
   };
 
@@ -330,8 +356,11 @@ export const getPaymentStatistics = async () => {
   const sumPartialPayments = (membersList: any[]) => {
     return membersList.reduce((sum, member) => {
       if (member.paymentStatus === "partial" && member.partialPaymentAmount) {
-        const amount = Number(member.partialPaymentAmount);
-        return sum + (isNaN(amount) || !isFinite(amount) ? 0 : amount);
+        const partialAmount = Number(member.partialPaymentAmount);
+        return (
+          sum +
+          (isNaN(partialAmount) || !isFinite(partialAmount) ? 0 : partialAmount)
+        );
       }
       return sum;
     }, 0);
@@ -357,17 +386,25 @@ export const getPaymentStatistics = async () => {
     (payment) => payment.date && new Date(payment.date) >= oneMonthAgo,
   );
 
-  // Calculate partial payments from members
+  // Get partial payments from members (only for today's calculation)
+  const todayPartialPayments = members.filter(
+    (member) =>
+      member.paymentStatus === "partial" &&
+      member.partialPaymentAmount &&
+      member.membershipStartDate &&
+      member.membershipStartDate.split("T")[0] === today,
+  );
+
+  const partialPaymentsToday = sumPartialPayments(todayPartialPayments);
   const partialPaymentsTotal = sumPartialPayments(members);
 
-  // For all period calculations, we include partial payments since they are ongoing
-  // This ensures partial payments are reflected in all revenue calculations
-  const partialPaymentsForPeriods = partialPaymentsTotal;
-
-  const totalRevenue = safeSum(payments) + partialPaymentsTotal;
-  const todayRevenue = safeSum(todayPayments) + partialPaymentsForPeriods;
-  const weekRevenue = safeSum(weekPayments) + partialPaymentsForPeriods;
-  const monthRevenue = safeSum(monthPayments) + partialPaymentsForPeriods;
+  // Calculate revenues using current pricing
+  const totalRevenue =
+    safeSumWithCurrentPricing(payments) + partialPaymentsTotal;
+  const todayRevenue =
+    safeSumWithCurrentPricing(todayPayments) + partialPaymentsToday;
+  const weekRevenue = safeSumWithCurrentPricing(weekPayments);
+  const monthRevenue = safeSumWithCurrentPricing(monthPayments);
 
   return {
     totalRevenue,
@@ -387,7 +424,12 @@ export const getPaymentStatistics = async () => {
     recentPayments: payments
       .filter((payment) => payment.date)
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-      .slice(0, 5),
+      .slice(0, 5)
+      .map((payment) => ({
+        ...payment,
+        // Show current pricing in recent payments for consistency
+        amount: recalculatePaymentAmount(payment),
+      })),
   };
 };
 

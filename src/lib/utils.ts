@@ -56,3 +56,25 @@ export function formatDateTime(date: string | Date): string {
     minute: "2-digit",
   }).format(dateObj);
 }
+
+// Format time with Algerian timezone
+export function formatTimeAlgeria(date: string | Date): string {
+  if (!date) return "غير محدد";
+
+  const dateObj = typeof date === "string" ? new Date(date) : date;
+
+  // Check if the date is valid
+  if (isNaN(dateObj.getTime())) {
+    return "غير محدد";
+  }
+
+  return dateObj.toLocaleString("ar-DZ", {
+    timeZone: "Africa/Algiers",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+}

@@ -501,7 +501,21 @@ const MembersList = () => {
         <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 w-full">
           {/* Search input - visible on all devices */}
           <div className="relative w-full lg:w-80 xl:w-96">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute left-1 top-1 h-8 w-8 text-gray-400 hover:text-white z-10"
+              onClick={() => {
+                const searchInput = document.querySelector(
+                  'input[placeholder="بحث عن عضو..."]',
+                ) as HTMLInputElement;
+                if (searchInput) {
+                  searchInput.focus();
+                }
+              }}
+            >
+              <Search className="h-4 w-4" />
+            </Button>
             <Input
               placeholder="بحث عن عضو..."
               value={searchQuery}

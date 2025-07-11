@@ -950,11 +950,50 @@ const TopMobileNavigation = ({
             </Button>
             <Button
               onClick={() => {
-                // Handle password change logic here
+                if (!currentPassword || !newPassword || !confirmPassword) {
+                  alert("خطأ في البيانات\nيرجى ملء جميع الحقول");
+                  return;
+                }
+
+                if (newPassword !== confirmPassword) {
+                  alert(
+                    "خطأ في كلمة المرور\nكلمة المرور الجديدة وتأكيدها غير متطابقين",
+                  );
+                  return;
+                }
+
+                if (newPassword.length < 4) {
+                  alert("خطأ\nكلمة المرور يجب أن تكون 4 أحرف على الأقل");
+                  return;
+                }
+
+                // Get current saved password or default
+                const savedPassword =
+                  localStorage.getItem("gymPassword") || "ADMIN ADMIN";
+
+                // Validate current password
+                if (currentPassword.trim() !== savedPassword.trim()) {
+                  alert("خطأ\nكلمة المرور الحالية غير صحيحة");
+                  return;
+                }
+
+                // Save new password
+                localStorage.setItem("gymPassword", newPassword.trim());
+
+                alert(
+                  "تم تغيير كلمة المرور\nتم تغيير كلمة المرور بنجاح. سيتم تسجيل الخروج الآن.",
+                );
+
                 setIsPasswordDialogOpen(false);
                 setCurrentPassword("");
                 setNewPassword("");
                 setConfirmPassword("");
+
+                // Log out user after password change
+                setTimeout(() => {
+                  localStorage.removeItem("user");
+                  window.location.href = "/login";
+                }, 2000);
               }}
               className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
             >

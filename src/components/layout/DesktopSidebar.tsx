@@ -1365,18 +1365,51 @@ const DesktopSidebar = ({
                   return;
                 }
 
-                // Handle password change logic here
-                localStorage.setItem("gymPassword", newPassword);
+                if (newPassword.length < 4) {
+                  toast({
+                    title: "خطأ",
+                    description: "كلمة المرور يجب أن تكون 4 أحرف على الأقل",
+                    variant: "destructive",
+                  });
+                  return;
+                }
+
+                // Get current saved password or default
+                const savedPassword =
+                  localStorage.getItem("gymPassword") || "ADMIN ADMIN";
+
+                // Validate current password
+                if (currentPassword.trim() !== savedPassword.trim()) {
+                  toast({
+                    title: "خطأ",
+                    description: "كلمة المرور الحالية غير صحيحة",
+                    variant: "destructive",
+                  });
+                  return;
+                }
+
+                // Save new password
+                localStorage.setItem("gymPassword", newPassword.trim());
+
+                // Play success sound
+                playSound("success");
 
                 toast({
                   title: "تم تغيير كلمة المرور",
-                  description: "تم تغيير كلمة المرور بنجاح",
+                  description:
+                    "تم تغيير كلمة المرور بنجاح. سيتم تسجيل الخروج الآن.",
                 });
 
                 setIsPasswordDialogOpen(false);
                 setCurrentPassword("");
                 setNewPassword("");
                 setConfirmPassword("");
+
+                // Log out user after password change
+                setTimeout(() => {
+                  localStorage.removeItem("user");
+                  window.location.href = "/login";
+                }, 2000);
               }}
               className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
             >

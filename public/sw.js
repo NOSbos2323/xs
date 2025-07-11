@@ -253,7 +253,7 @@ async function handleNavigation(request) {
   }
 }
 
-// Create offline response
+// Create offline response with logo
 function createOfflineResponse() {
   return new Response(
     `
@@ -263,31 +263,184 @@ function createOfflineResponse() {
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>Amino Gym - وضع عدم الاتصال</title>
+      <link rel="icon" type="image/png" href="/yacin-gym-logo.png" />
+      <meta name="theme-color" content="#1e293b" />
       <style>
         body { 
-          font-family: Arial, sans-serif; 
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
           text-align: center; 
-          padding: 50px;
-          background: #0f172a;
+          padding: 20px;
+          background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
           color: white;
+          margin: 0;
+          min-height: 100vh;
+          display: flex;
+          align-items: center;
+          justify-content: center;
         }
-        .offline-message {
+        .offline-container {
           max-width: 400px;
           margin: 0 auto;
-          padding: 20px;
-          background: #1e293b;
-          border-radius: 10px;
+          padding: 30px;
+          background: rgba(30, 41, 59, 0.8);
+          border-radius: 20px;
+          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+          backdrop-filter: blur(10px);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .logo {
+          width: 80px;
+          height: 80px;
+          margin: 0 auto 20px;
+          background: url('/yacin-gym-logo.png') center/contain no-repeat;
+          border-radius: 50%;
+          box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+        .logo-fallback {
+          width: 80px;
+          height: 80px;
+          margin: 0 auto 20px;
+          background: linear-gradient(45deg, #fbbf24, #f59e0b);
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 32px;
+          font-weight: bold;
+          color: white;
+          text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        h1 {
+          color: #fbbf24;
+          margin: 0 0 10px;
+          font-size: 28px;
+          font-weight: 700;
+        }
+        h2 {
+          color: #e2e8f0;
+          margin: 0 0 20px;
+          font-size: 20px;
+          font-weight: 500;
+        }
+        p {
+          color: #cbd5e1;
+          margin: 10px 0;
+          font-size: 16px;
+          line-height: 1.5;
+        }
+        .status-indicator {
+          display: inline-block;
+          width: 12px;
+          height: 12px;
+          background: #ef4444;
+          border-radius: 50%;
+          margin-left: 8px;
+          animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.5; }
+        }
+        button {
+          background: linear-gradient(45deg, #fbbf24, #f59e0b);
+          color: white;
+          border: none;
+          padding: 12px 24px;
+          border-radius: 25px;
+          font-size: 16px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          margin-top: 20px;
+          box-shadow: 0 4px 15px rgba(251, 191, 36, 0.3);
+        }
+        button:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 20px rgba(251, 191, 36, 0.4);
+        }
+        .features {
+          margin-top: 20px;
+          text-align: right;
+        }
+        .feature {
+          display: flex;
+          align-items: center;
+          justify-content: flex-end;
+          margin: 8px 0;
+          color: #94a3b8;
+          font-size: 14px;
+        }
+        .feature::before {
+          content: '✓';
+          color: #10b981;
+          font-weight: bold;
+          margin-left: 8px;
         }
       </style>
     </head>
     <body>
-      <div class="offline-message">
-        <h1>🏋️ Amino Gym</h1>
-        <h2>وضع عدم الاتصال</h2>
-        <p>التطبيق يعمل بدون انترنت</p>
-        <p>جميع بياناتك محفوظة محلياً</p>
-        <button onclick="window.location.reload()">إعادة تحميل</button>
+      <div class="offline-container">
+        <div class="logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"></div>
+        <div class="logo-fallback" style="display: none;">AG</div>
+        
+        <h1>Amino Gym</h1>
+        <h2>وضع عدم الاتصال <span class="status-indicator"></span></h2>
+        
+        <p><strong>التطبيق يعمل بدون انترنت بالكامل</strong></p>
+        <p>جميع بياناتك وإعداداتك محفوظة محلياً</p>
+        
+        <div class="features">
+          <div class="feature">إدارة الأعضاء والحضور</div>
+          <div class="feature">تسجيل المدفوعات</div>
+          <div class="feature">عرض التقارير</div>
+          <div class="feature">البحث والفلترة</div>
+        </div>
+        
+        <button onclick="window.location.reload()" title="إعادة المحاولة للاتصال بالإنترنت">
+          🔄 إعادة تحميل
+        </button>
       </div>
+      
+      <script>
+        // Check for logo loading
+        const logo = document.querySelector('.logo');
+        const logoFallback = document.querySelector('.logo-fallback');
+        
+        // Test if logo image loads
+        const testImg = new Image();
+        testImg.onload = function() {
+          logo.style.display = 'block';
+          logoFallback.style.display = 'none';
+        };
+        testImg.onerror = function() {
+          logo.style.display = 'none';
+          logoFallback.style.display = 'flex';
+        };
+        testImg.src = '/yacin-gym-logo.png';
+        
+        // Auto-refresh when online
+        window.addEventListener('online', function() {
+          setTimeout(() => {
+            window.location.reload();
+          }, 1000);
+        });
+        
+        // Update connection status
+        function updateStatus() {
+          const indicator = document.querySelector('.status-indicator');
+          if (navigator.onLine) {
+            indicator.style.background = '#10b981';
+            indicator.title = 'متصل';
+          } else {
+            indicator.style.background = '#ef4444';
+            indicator.title = 'غير متصل';
+          }
+        }
+        
+        updateStatus();
+        window.addEventListener('online', updateStatus);
+        window.addEventListener('offline', updateStatus);
+      </script>
     </body>
     </html>
   `,

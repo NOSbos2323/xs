@@ -19,6 +19,7 @@ import {
   getAllPayments,
   Payment,
   deletePayment,
+  calculateSubscriptionPrice,
 } from "@/services/paymentService";
 import { getMemberById, getAllMembers } from "@/services/memberService";
 import {
@@ -84,19 +85,30 @@ const PaymentsList = forwardRef(
         const allPayments = await getAllPayments();
         const allMembers = await getAllMembers();
 
-        // Enhance payments with member names
+        // Enhance payments with member names and current pricing
         const enhancedPayments = await Promise.all(
           allPayments.map(async (payment) => {
             try {
               const member = await getMemberById(payment.memberId);
+              // Calculate current price for this subscription type
+              const currentPrice = calculateSubscriptionPrice(
+                payment.subscriptionType,
+              );
               return {
                 ...payment,
-                memberName: member?.name || "غير معروف",
+                memberName: member?.name || "عضو غير معروف",
+                // Use current pricing for display
+                amount: currentPrice,
+                // Keep original amount for reference if needed
+                originalAmount: payment.amount,
               };
             } catch (error) {
               return {
                 ...payment,
-                memberName: "غير معروف",
+                memberName: "عضو غير معروف",
+                // Fallback to current pricing even on error
+                amount: calculateSubscriptionPrice(payment.subscriptionType),
+                originalAmount: payment.amount,
               };
             }
           }),
@@ -135,6 +147,27 @@ const PaymentsList = forwardRef(
     useEffect(() => {
       fetchPayments();
     }, [onRefresh]);
+
+    // Listen for pricing updates to refresh payments list
+    useEffect(() => {
+      const handlePricingUpdate = () => {
+        console.log("PaymentsList: Pricing updated, refreshing payments");
+        // Add a small delay to ensure localStorage is updated
+        setTimeout(() => {
+          fetchPayments();
+        }, 100);
+      };
+
+      window.addEventListener("pricing-updated", handlePricingUpdate);
+      window.addEventListener("storage", handlePricingUpdate);
+      window.addEventListener("paymentsUpdated", handlePricingUpdate);
+
+      return () => {
+        window.removeEventListener("pricing-updated", handlePricingUpdate);
+        window.removeEventListener("storage", handlePricingUpdate);
+        window.removeEventListener("paymentsUpdated", handlePricingUpdate);
+      };
+    }, []);
 
     // Expose the fetchPayments method to parent components via ref
     React.useImperativeHandle(ref, () => ({
@@ -408,15 +441,7 @@ const PaymentsList = forwardRef(
                   className="bg-bluegray-600/50 rounded-lg p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-2"
                 >
                   <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-white">
-                        {payment.memberName}
-                      </span>
-                      <span className="text-sm text-gray-400">
-                        ({payment.subscriptionType})
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 mt-1 text-sm text-gray-300">
+                    <div className="flex items-center gap-2 text-sm text-gray-300">
                       {getPaymentMethodIcon(payment.paymentMethod)}
                       <span>{getPaymentMethodText(payment.paymentMethod)}</span>
                       <span className="mx-2">•</span>
@@ -477,7 +502,7 @@ const PaymentsList = forwardRef(
                 {paymentToDelete && (
                   <div className="mt-2 p-2 bg-bluegray-600 rounded">
                     <div>
-                      العضو: {paymentToDelete.memberName || "غير معروف"}
+                      العضو: {paymentToDelete.memberName || "اسم العضو"}
                     </div>
                     <div>
                       المبلغ: {formatNumber(paymentToDelete.amount)} DZD

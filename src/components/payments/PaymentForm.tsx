@@ -62,6 +62,39 @@ const PaymentForm = ({
     setAmount(price);
   }, [subscriptionType]);
 
+  // Listen for pricing updates from settings
+  useEffect(() => {
+    const handlePricingUpdate = () => {
+      const price = calculateSubscriptionPrice(subscriptionType);
+      setAmount(price);
+    };
+
+    // Listen for both pricing-updated event and storage changes
+    window.addEventListener("pricing-updated", handlePricingUpdate);
+    window.addEventListener("storage", handlePricingUpdate);
+
+    return () => {
+      window.removeEventListener("pricing-updated", handlePricingUpdate);
+      window.removeEventListener("storage", handlePricingUpdate);
+    };
+  }, [subscriptionType]);
+
+  // Also listen for localStorage changes in the same tab
+  useEffect(() => {
+    // Check for pricing changes every 200ms (for same-tab updates)
+    const interval = setInterval(() => {
+      const currentPrice = calculateSubscriptionPrice(subscriptionType);
+      if (currentPrice !== amount && !editingPayment) {
+        console.log(
+          `PaymentForm: Updating price for ${subscriptionType} from ${amount} to ${currentPrice}`,
+        );
+        setAmount(currentPrice);
+      }
+    }, 200);
+
+    return () => clearInterval(interval);
+  }, [subscriptionType, amount, editingPayment]);
+
   useEffect(() => {
     // Populate form when editing
     if (editingPayment) {
@@ -119,6 +152,10 @@ const PaymentForm = ({
           description: `تم إضافة المدفوعات بنجاح. رقم الفاتورة: ${result.invoiceNumber}`,
           variant: "default",
         });
+
+        // Trigger pricing update event to refresh all components
+        window.dispatchEvent(new CustomEvent("pricing-updated"));
+        window.dispatchEvent(new CustomEvent("paymentsUpdated"));
       }
 
       if (onSuccess) {

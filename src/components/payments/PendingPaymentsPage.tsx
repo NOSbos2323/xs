@@ -33,11 +33,73 @@ const PendingPaymentsPage = ({ onBack }: PendingPaymentsPageProps) => {
   const [allUnpaidMembers, setAllUnpaidMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPeriod, setSelectedPeriod] = useState<string>("all");
-  const [isHeaderVisible, setIsHeaderVisible] = useState(true);
-  const [lastScrollY, setLastScrollY] = useState(0);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [editingMember, setEditingMember] = useState<Member | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+
+  // Get current pricing from settings using the payment service function
+  const getCurrentPrice = (subscriptionType: string): number => {
+    // Import and use the calculateSubscriptionPrice function from payment service
+    const savedPricing = localStorage.getItem("gymPricingSettings");
+    let pricing = {
+      singleSession: 200,
+      sessions13: 1500,
+      sessions15: 1800,
+      sessions30: 1800,
+    };
+
+    if (savedPricing) {
+      try {
+        const parsedPricing = JSON.parse(savedPricing);
+        pricing = {
+          singleSession: parsedPricing.singleSession || 200,
+          sessions13: parsedPricing.sessions13 || 1500,
+          sessions15: parsedPricing.sessions15 || 1800,
+          sessions30: parsedPricing.sessions30 || 1800,
+        };
+      } catch (error) {
+        console.error("Error loading pricing:", error);
+      }
+    }
+
+    switch (subscriptionType?.trim()) {
+      case "شهري":
+        return pricing.sessions13;
+      case "13 حصة":
+        return pricing.sessions13;
+      case "15 حصة":
+        return pricing.sessions15;
+      case "30 حصة":
+        return pricing.sessions30;
+      case "حصة واحدة":
+        return pricing.singleSession;
+      default:
+        return pricing.sessions13;
+    }
+  };
+
+  // State to force re-render when pricing changes
+  const [pricingVersion, setPricingVersion] = useState(0);
+
+  // Listen for pricing updates
+  useEffect(() => {
+    const handlePricingUpdate = () => {
+      setPricingVersion((prev) => prev + 1);
+    };
+
+    window.addEventListener("pricing-updated", handlePricingUpdate);
+    window.addEventListener("storage", handlePricingUpdate);
+
+    // Check for pricing changes periodically
+    const interval = setInterval(() => {
+      setPricingVersion((prev) => prev + 1);
+    }, 1000);
+
+    return () => {
+      window.removeEventListener("pricing-updated", handlePricingUpdate);
+      window.removeEventListener("storage", handlePricingUpdate);
+      clearInterval(interval);
+    };
+  }, []);
 
   // Computed filtered members based on selected period
   const filteredMembers = React.useMemo(() => {
@@ -48,6 +110,10 @@ const PendingPaymentsPage = ({ onBack }: PendingPaymentsPageProps) => {
     const currentDate = new Date();
     const currentMonth = currentDate.getMonth();
     const currentYear = currentDate.getFullYear();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
 
     return allUnpaidMembers.filter((member) => {
       if (!member.membershipStartDate) return false;
@@ -55,8 +121,13 @@ const PendingPaymentsPage = ({ onBack }: PendingPaymentsPageProps) => {
       const memberDate = new Date(member.membershipStartDate);
       const memberMonth = memberDate.getMonth();
       const memberYear = memberDate.getFullYear();
+      const memberDateOnly = new Date(memberDate);
+      memberDateOnly.setHours(0, 0, 0, 0);
 
       switch (selectedPeriod) {
+        case "today":
+          return memberDateOnly.getTime() === today.getTime();
+
         case "thisMonth":
           return memberMonth === currentMonth && memberYear === currentYear;
 
@@ -129,20 +200,16 @@ const PendingPaymentsPage = ({ onBack }: PendingPaymentsPageProps) => {
     fetchUnpaidMembers();
   }, []);
 
-  // Simplified scroll handler to manage header visibility
-  const handleScroll = (event: React.UIEvent<HTMLDivElement>) => {
-    const currentScrollY = event.currentTarget.scrollTop;
-
-    // Header visibility logic
-    if (currentScrollY > lastScrollY && currentScrollY > 100) {
-      // Scrolling down and past threshold - hide header
-      setIsHeaderVisible(false);
-    } else if (currentScrollY < lastScrollY || currentScrollY <= 50) {
-      // Scrolling up or near top - show header
-      setIsHeaderVisible(true);
-    }
-
-    setLastScrollY(currentScrollY);
+  // Get count for today
+  const getTodayCount = () => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return allUnpaidMembers.filter((member) => {
+      if (!member.membershipStartDate) return false;
+      const memberDate = new Date(member.membershipStartDate);
+      memberDate.setHours(0, 0, 0, 0);
+      return memberDate.getTime() === today.getTime();
+    }).length;
   };
 
   // Handle sending end of month message
@@ -158,16 +225,12 @@ const PendingPaymentsPage = ({ onBack }: PendingPaymentsPageProps) => {
 ملاحظة: تم دفع مبلغ ${formatNumber(member.partialPaymentAmount)} دج من إجمالي ${formatNumber(member.subscriptionPrice || 0)} دج.`;
     }
 
-    // Create WhatsApp URL if phone number exists
-    if (member.phoneNumber) {
-      const whatsappUrl = `https://wa.me/${member.phoneNumber.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(message)}`;
-      window.open(whatsappUrl, "_blank");
-    } else {
-      // Copy message to clipboard if no phone number
-      navigator.clipboard.writeText(message).then(() => {
-        alert("تم نسخ الرسالة إلى الحافظة");
-      });
-    }
+    // Create SMS URL to open SMS app with pre-filled message
+    const phoneNumber = member.phoneNumber
+      ? member.phoneNumber.replace(/[^0-9]/g, "")
+      : "";
+    const smsUrl = `sms:${phoneNumber}?body=${encodeURIComponent(message)}`;
+    window.open(smsUrl, "_self");
   };
 
   // Handle calling member
@@ -207,199 +270,133 @@ const PendingPaymentsPage = ({ onBack }: PendingPaymentsPageProps) => {
   };
 
   return (
-    <div className="h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white flex flex-col overflow-hidden">
+    <div className="h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white flex flex-col overflow-hidden relative">
       {/* Mobile Navigation */}
       <div className="lg:hidden flex-shrink-0">
-        <TopMobileNavigation activeItem="payments" setActiveItem={() => {}} />
+        <TopMobileNavigation
+          activeItem="payments"
+          setActiveItem={() => {}}
+          onSettingsClick={() => {}}
+        />
       </div>
 
       {/* Main Container - Fixed height with proper overflow */}
       <div className="flex-1 flex flex-col min-h-0">
         <div className="flex-1 flex flex-col min-h-0 px-2 sm:px-4 pt-2 pb-2">
           <div className="bg-gradient-to-br from-slate-800/90 to-slate-900/90 backdrop-blur-xl border border-slate-600/50 shadow-2xl rounded-xl w-full text-white flex-1 flex flex-col min-h-0 overflow-hidden">
-            {/* Header Section - Animated Hide/Show */}
-            <div
-              className={`transition-all duration-300 ease-in-out overflow-hidden border-b border-slate-700/50 ${
-                isHeaderVisible
-                  ? "max-h-screen opacity-100 p-3 sm:p-4"
-                  : "max-h-0 opacity-0 p-0"
-              }`}
-            >
+            {/* Filter Section */}
+            <div className="p-3 sm:p-4 border-b border-slate-700/30">
               {/* Title */}
               <div className="text-center mb-4">
-                <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold bg-gradient-to-r from-red-400 via-orange-400 to-yellow-400 bg-clip-text text-transparent">
+                <h2 className="text-xl sm:text-2xl font-bold text-white">
                   المدفوعات المعلقة
                 </h2>
-                <p className="text-gray-300 text-sm mt-2">
-                  متابعة وإدارة المدفوعات المعلقة والمستحقات
-                </p>
               </div>
 
-              {/* Statistics Summary */}
-              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-4">
-                <Card className="overflow-hidden bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-xl border border-slate-600/50 shadow-2xl hover:shadow-3xl transition-all duration-500 hover:border-slate-500/60">
-                  <CardContent className="p-3 sm:p-4 lg:p-6">
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="text-lg sm:text-xl lg:text-2xl xl:text-3xl font-bold bg-gradient-to-r from-yellow-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">
-                          {formatNumber(allUnpaidMembers.length)}
-                        </div>
-                        <div className="text-xs sm:text-sm text-gray-300 mt-1 font-medium">
-                          إجمالي المعلقة
-                        </div>
-                      </div>
-                      <div className="bg-gradient-to-br from-yellow-500/20 via-blue-500/20 to-purple-500/20 p-2 sm:p-3 lg:p-4 rounded-xl lg:rounded-2xl border border-white/10 shadow-lg">
-                        <AlertTriangle className="h-5 w-5 sm:h-6 sm:w-6 lg:h-7 lg:w-7 text-red-400" />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+              {/* Filter Buttons */}
+              <div className="flex flex-wrap gap-2 justify-center mb-3">
+                <Button
+                  variant={selectedPeriod === "all" ? "default" : "outline"}
+                  size="sm"
+                  className="text-xs"
+                  onClick={() => setSelectedPeriod("all")}
+                >
+                  الكل ({allUnpaidMembers.length})
+                </Button>
 
-                <Card className="overflow-hidden bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-xl border border-slate-600/50 shadow-2xl hover:shadow-3xl transition-all duration-500 hover:border-slate-500/60">
-                  <CardContent className="p-4 sm:p-6">
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-yellow-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">
-                          {formatNumber(filteredMembers.length)}
-                        </div>
-                        <div className="text-sm text-gray-300 mt-1 font-medium">
-                          المعروضة حالياً
-                        </div>
-                      </div>
-                      <div className="bg-gradient-to-br from-yellow-500/20 via-blue-500/20 to-purple-500/20 p-3 sm:p-4 rounded-2xl border border-white/10 shadow-lg">
-                        <Filter className="h-6 w-6 sm:h-7 sm:w-7 text-green-400" />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                <Button
+                  variant={selectedPeriod === "today" ? "default" : "outline"}
+                  size="sm"
+                  className="text-xs"
+                  onClick={() => setSelectedPeriod("today")}
+                >
+                  اليوم ({getTodayCount()})
+                </Button>
 
-                <Card className="overflow-hidden bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-xl border border-slate-600/50 shadow-2xl hover:shadow-3xl transition-all duration-500 hover:border-slate-500/60">
-                  <CardContent className="p-4 sm:p-6">
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-yellow-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">
-                          {formatNumber(
-                            allUnpaidMembers.filter(
-                              (m) => m.paymentStatus === "partial",
-                            ).length,
-                          )}
-                        </div>
-                        <div className="text-sm text-gray-300 mt-1 font-medium">
-                          مدفوعة جزئياً
-                        </div>
-                      </div>
-                      <div className="bg-gradient-to-br from-yellow-500/20 via-blue-500/20 to-purple-500/20 p-3 sm:p-4 rounded-2xl border border-white/10 shadow-lg">
-                        <DollarSign className="h-6 w-6 sm:h-7 sm:w-7 text-yellow-400" />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                <Button
+                  variant={
+                    selectedPeriod === "thisMonth" ? "default" : "outline"
+                  }
+                  size="sm"
+                  className="text-xs"
+                  onClick={() => setSelectedPeriod("thisMonth")}
+                >
+                  هذا الشهر (
+                  {
+                    allUnpaidMembers.filter((m) => {
+                      if (!m.membershipStartDate) return false;
+                      const memberDate = new Date(m.membershipStartDate);
+                      const currentDate = new Date();
+                      return (
+                        memberDate.getMonth() === currentDate.getMonth() &&
+                        memberDate.getFullYear() === currentDate.getFullYear()
+                      );
+                    }).length
+                  }
+                  )
+                </Button>
 
-                <Card className="overflow-hidden bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-xl border border-slate-600/50 shadow-2xl hover:shadow-3xl transition-all duration-500 hover:border-slate-500/60">
-                  <CardContent className="p-4 sm:p-6">
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-yellow-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">
-                          {formatNumber(
-                            allUnpaidMembers.filter(
-                              (m) => m.sessionsRemaining === 0,
-                            ).length,
-                          )}
-                        </div>
-                        <div className="text-sm text-gray-300 mt-1 font-medium">
-                          حصص منتهية
-                        </div>
-                      </div>
-                      <div className="bg-gradient-to-br from-yellow-500/20 via-blue-500/20 to-purple-500/20 p-3 sm:p-4 rounded-2xl border border-white/10 shadow-lg">
-                        <Clock className="h-6 w-6 sm:h-7 sm:w-7 text-pink-400" />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                <Button
+                  variant={
+                    selectedPeriod === "lastMonth" ? "default" : "outline"
+                  }
+                  size="sm"
+                  className="text-xs"
+                  onClick={() => setSelectedPeriod("lastMonth")}
+                >
+                  الشهر الماضي (
+                  {
+                    allUnpaidMembers.filter((m) => {
+                      if (!m.membershipStartDate) return false;
+                      const memberDate = new Date(m.membershipStartDate);
+                      const currentDate = new Date();
+                      const lastMonth =
+                        currentDate.getMonth() === 0
+                          ? 11
+                          : currentDate.getMonth() - 1;
+                      const lastMonthYear =
+                        currentDate.getMonth() === 0
+                          ? currentDate.getFullYear() - 1
+                          : currentDate.getFullYear();
+                      return (
+                        memberDate.getMonth() === lastMonth &&
+                        memberDate.getFullYear() === lastMonthYear
+                      );
+                    }).length
+                  }
+                  )
+                </Button>
+
+                <Button
+                  variant={selectedPeriod === "expired" ? "default" : "outline"}
+                  size="sm"
+                  className="text-xs"
+                  onClick={() => setSelectedPeriod("expired")}
+                >
+                  منتهية (
+                  {
+                    allUnpaidMembers.filter((m) => {
+                      if (!m.membershipStartDate) return false;
+                      const memberDate = new Date(m.membershipStartDate);
+                      const oneMonthLater = new Date(memberDate);
+                      oneMonthLater.setMonth(oneMonthLater.getMonth() + 1);
+                      return new Date() > oneMonthLater;
+                    }).length
+                  }
+                  )
+                </Button>
               </div>
 
-              {/* Period Filter Buttons - Mobile Optimized */}
-              <div className="flex flex-col lg:flex-row gap-3 lg:gap-6 w-full">
-                {/* Mobile: Grid Layout for Better Touch */}
-                <div className="grid grid-cols-2 gap-2 sm:hidden">
-                  <Button
-                    variant="outline"
-                    className={`flex items-center justify-center gap-2 backdrop-blur-sm bg-bluegray-700/50 border-bluegray-600 hover:bg-bluegray-600 text-white py-2 px-3 rounded-lg transition-all duration-300 ${selectedPeriod === "all" ? "bg-gradient-to-r from-blue-500/30 to-purple-500/30 border-blue-400/50 shadow-lg" : ""}`}
-                    onClick={() => setSelectedPeriod("all")}
-                  >
-                    <Filter className="h-4 w-4" />
-                    <span className="text-xs font-medium">الكل</span>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className={`flex items-center justify-center gap-2 backdrop-blur-sm bg-bluegray-700/50 border-bluegray-600 hover:bg-bluegray-600 text-white py-3 px-4 rounded-xl transition-all duration-300 ${selectedPeriod === "thisMonth" ? "bg-gradient-to-r from-blue-500/30 to-cyan-500/30 border-blue-400/50 shadow-lg" : ""}`}
-                    onClick={() => setSelectedPeriod("thisMonth")}
-                  >
-                    <Calendar className="h-4 w-4 text-blue-400" />
-                    <span className="text-sm font-medium">هذا الشهر</span>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className={`flex items-center justify-center gap-2 backdrop-blur-sm bg-bluegray-700/50 border-bluegray-600 hover:bg-bluegray-600 text-white py-3 px-4 rounded-xl transition-all duration-300 ${selectedPeriod === "lastMonth" ? "bg-gradient-to-r from-purple-500/30 to-pink-500/30 border-purple-400/50 shadow-lg" : ""}`}
-                    onClick={() => setSelectedPeriod("lastMonth")}
-                  >
-                    <Calendar className="h-4 w-4 text-purple-400" />
-                    <span className="text-sm font-medium">الشهر الماضي</span>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className={`flex items-center justify-center gap-2 backdrop-blur-sm bg-bluegray-700/50 border-bluegray-600 hover:bg-bluegray-600 text-white py-3 px-4 rounded-xl transition-all duration-300 ${selectedPeriod === "expired" ? "bg-gradient-to-r from-red-500/30 to-orange-500/30 border-red-400/50 shadow-lg" : ""}`}
-                    onClick={() => setSelectedPeriod("expired")}
-                  >
-                    <AlertTriangle className="h-4 w-4 text-red-400" />
-                    <span className="text-sm font-medium">منتهية الصلاحية</span>
-                  </Button>
-                </div>
-
-                {/* Desktop & Tablet: Horizontal Scroll */}
-                <div className="hidden sm:flex gap-3 overflow-x-auto pb-2 lg:pb-0">
-                  <Button
-                    variant="outline"
-                    className={`flex items-center gap-2 backdrop-blur-sm bg-bluegray-700/50 border-bluegray-600 hover:bg-bluegray-600 text-white whitespace-nowrap px-4 py-2.5 rounded-xl transition-all duration-300 ${selectedPeriod === "all" ? "bg-gradient-to-r from-blue-500/30 to-purple-500/30 border-blue-400/50 shadow-lg" : ""}`}
-                    onClick={() => setSelectedPeriod("all")}
-                  >
-                    <Filter className="h-4 w-4" />
-                    الكل
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className={`flex items-center gap-2 backdrop-blur-sm bg-bluegray-700/50 border-bluegray-600 hover:bg-bluegray-600 text-white whitespace-nowrap px-4 py-2.5 rounded-xl transition-all duration-300 ${selectedPeriod === "thisMonth" ? "bg-gradient-to-r from-blue-500/30 to-cyan-500/30 border-blue-400/50 shadow-lg" : ""}`}
-                    onClick={() => setSelectedPeriod("thisMonth")}
-                  >
-                    <Calendar className="h-4 w-4 text-blue-400" />
-                    هذا الشهر
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className={`flex items-center gap-2 backdrop-blur-sm bg-bluegray-700/50 border-bluegray-600 hover:bg-bluegray-600 text-white whitespace-nowrap px-4 py-2.5 rounded-xl transition-all duration-300 ${selectedPeriod === "lastMonth" ? "bg-gradient-to-r from-purple-500/30 to-pink-500/30 border-purple-400/50 shadow-lg" : ""}`}
-                    onClick={() => setSelectedPeriod("lastMonth")}
-                  >
-                    <Calendar className="h-4 w-4 text-purple-400" />
-                    الشهر الماضي
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className={`flex items-center gap-2 backdrop-blur-sm bg-bluegray-700/50 border-bluegray-600 hover:bg-bluegray-600 text-white whitespace-nowrap px-4 py-2.5 rounded-xl transition-all duration-300 ${selectedPeriod === "expired" ? "bg-gradient-to-r from-red-500/30 to-orange-500/30 border-red-400/50 shadow-lg" : ""}`}
-                    onClick={() => setSelectedPeriod("expired")}
-                  >
-                    <AlertTriangle className="h-4 w-4 text-red-400" />
-                    منتهية الصلاحية
-                  </Button>
-                </div>
+              {/* Current Filter Display */}
+              <div className="text-center">
+                <Badge variant="secondary" className="text-xs">
+                  المعروضة: {formatNumber(filteredMembers.length)} عضو
+                </Badge>
               </div>
             </div>
 
             {/* Scrollable Content Area - Flexible */}
-            <div
-              ref={scrollContainerRef}
-              className="flex-1 overflow-y-auto scrollbar-hide"
-              onScroll={handleScroll}
-            >
+            <div className="flex-1 overflow-y-auto scrollbar-hide">
               {loading ? (
                 <div className="flex justify-center items-center py-10 sm:py-20">
                   <div className="w-10 h-10 sm:w-16 sm:h-16 border-4 border-red-400 border-t-transparent rounded-full animate-spin" />
@@ -427,7 +424,7 @@ const PendingPaymentsPage = ({ onBack }: PendingPaymentsPageProps) => {
                   </div>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-4 lg:gap-6 p-3 sm:p-4 pb-20 lg:pb-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 p-3 pb-20 lg:pb-6">
                   {filteredMembers.map((member, index) => (
                     <motion.div
                       key={member.id}
@@ -436,16 +433,16 @@ const PendingPaymentsPage = ({ onBack }: PendingPaymentsPageProps) => {
                       transition={{ duration: 0.3, delay: index * 0.05 }}
                       whileHover={{ scale: 1.02 }}
                     >
-                      <Card className="overflow-hidden backdrop-blur-xl bg-gradient-to-br from-bluegray-700/60 to-bluegray-800/60 border border-red-500/50 shadow-lg hover:shadow-xl transition-all duration-200 w-full hover:border-red-400/60">
-                        <CardContent className="p-3 h-full flex flex-col">
+                      <Card className="overflow-hidden backdrop-blur-xl bg-gradient-to-br from-slate-700/60 to-slate-800/60 border border-red-500/50 shadow-lg hover:shadow-xl transition-all duration-200 w-full hover:border-red-400/60">
+                        <CardContent className="p-2.5 h-full flex flex-col">
                           {/* Header Section with Avatar and Name */}
-                          <div className="flex items-center gap-3 mb-3">
-                            <Avatar className="h-12 w-12 border-2 border-red-400/50 shadow-lg flex-shrink-0">
+                          <div className="flex items-center gap-2 mb-3">
+                            <Avatar className="h-10 w-10 border-2 border-red-400/50 shadow-lg flex-shrink-0">
                               <AvatarImage
                                 src={member.imageUrl}
                                 alt={member.name}
                               />
-                              <AvatarFallback className="bg-gradient-to-br from-red-500 to-orange-600 text-white text-sm font-bold">
+                              <AvatarFallback className="bg-gradient-to-br from-red-500 to-orange-600 text-white text-xs font-bold">
                                 {member.name.substring(0, 2)}
                               </AvatarFallback>
                             </Avatar>
@@ -484,11 +481,15 @@ const PendingPaymentsPage = ({ onBack }: PendingPaymentsPageProps) => {
                                 )}
 
                               {/* Subscription Price */}
-                              {member.subscriptionPrice && (
+                              {member.subscriptionType && (
                                 <div className="bg-gradient-to-r from-green-500/20 to-emerald-500/20 rounded-lg p-2 border border-green-400/30">
                                   <div className="text-center">
                                     <div className="text-xs font-bold text-green-400 mb-1">
-                                      {formatNumber(member.subscriptionPrice)}{" "}
+                                      {formatNumber(
+                                        getCurrentPrice(
+                                          member.subscriptionType,
+                                        ),
+                                      )}{" "}
                                       دج
                                     </div>
                                     {member.paymentStatus === "partial" &&
@@ -541,25 +542,25 @@ const PendingPaymentsPage = ({ onBack }: PendingPaymentsPageProps) => {
                           </div>
 
                           {/* Action Buttons - Fixed at Bottom */}
-                          <div className="grid grid-cols-2 gap-1.5 mt-3 pt-2 border-t border-slate-600/30">
+                          <div className="grid grid-cols-2 gap-1 mt-2 pt-2 border-t border-slate-600/30">
                             {/* End of Month Message Button */}
                             <Button
                               size="sm"
                               variant="outline"
-                              className="h-8 px-2 text-xs border-orange-500/50 text-orange-300 hover:bg-orange-500/20 hover:border-orange-400 transition-all duration-200"
+                              className="h-7 px-1.5 text-xs border-orange-500/50 text-orange-300 hover:bg-orange-500/20 hover:border-orange-400 transition-all duration-200"
                               onClick={() =>
                                 handleSendEndOfMonthMessage(member)
                               }
                             >
                               <Send className="h-3 w-3 mr-1" />
-                              انتهى الشهر
+                              رسالة
                             </Button>
 
                             {/* Edit Button */}
                             <Button
                               size="sm"
                               variant="outline"
-                              className="h-8 px-2 text-xs border-blue-500/50 text-blue-300 hover:bg-blue-500/20 hover:border-blue-400 transition-all duration-200"
+                              className="h-7 px-1.5 text-xs border-blue-500/50 text-blue-300 hover:bg-blue-500/20 hover:border-blue-400 transition-all duration-200"
                               onClick={() => handleEditMember(member)}
                             >
                               <Edit className="h-3 w-3 mr-1" />
@@ -588,6 +589,8 @@ const PendingPaymentsPage = ({ onBack }: PendingPaymentsPageProps) => {
             if (onBack) onBack();
           }}
           onPendingPaymentsClick={() => {}}
+          onAddSessionClick={() => {}}
+          onAddMemberClick={() => {}}
         />
       </div>
 

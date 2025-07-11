@@ -225,12 +225,12 @@ const SettingsPage = ({ onBack, onNavigate }: SettingsPageProps) => {
       return;
     }
 
-    // Get current saved password or default
-    const savedPassword = localStorage.getItem("gymPassword") || "ADMIN";
+    // Get current saved password or default (check both possible keys)
+    const savedPassword = localStorage.getItem("gymPassword") || "ADMIN ADMIN";
 
     // If changing password, validate current password
-    if (newPassword) {
-      if (!currentPassword) {
+    if (newPassword && newPassword.trim() !== "") {
+      if (!currentPassword || currentPassword.trim() === "") {
         toast({
           title: "خطأ",
           description: "يجب إدخال كلمة المرور الحالية",
@@ -239,7 +239,7 @@ const SettingsPage = ({ onBack, onNavigate }: SettingsPageProps) => {
         return;
       }
 
-      if (currentPassword !== savedPassword) {
+      if (currentPassword.trim() !== savedPassword.trim()) {
         toast({
           title: "خطأ",
           description: "كلمة المرور الحالية غير صحيحة",
@@ -259,8 +259,12 @@ const SettingsPage = ({ onBack, onNavigate }: SettingsPageProps) => {
     localStorage.setItem("user", JSON.stringify(currentUser));
 
     // Save new password if provided
-    if (newPassword) {
-      localStorage.setItem("gymPassword", newPassword);
+    if (newPassword && newPassword.trim() !== "") {
+      localStorage.setItem("gymPassword", newPassword.trim());
+
+      // Play success sound
+      playSound("success");
+
       toast({
         title: "تم التحديث",
         description:
@@ -277,6 +281,9 @@ const SettingsPage = ({ onBack, onNavigate }: SettingsPageProps) => {
         window.location.href = "/login";
       }, 2000);
     } else {
+      // Play success sound
+      playSound("success");
+
       toast({
         title: "تم التحديث",
         description: "تم تحديث اسم المستخدم بنجاح",

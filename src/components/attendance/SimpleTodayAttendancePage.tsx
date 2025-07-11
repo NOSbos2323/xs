@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar, Users, CheckCircle, Clock } from "lucide-react";
 import { getAllMembers, Member } from "@/services/memberService";
 import { getAllPayments } from "@/services/paymentService";
-import { formatDate, formatNumber } from "@/lib/utils";
+import { formatDate, formatNumber, formatTimeAlgeria } from "@/lib/utils";
 
 const SimpleTodayAttendancePage = () => {
   const [todayAttendees, setTodayAttendees] = useState<
@@ -272,13 +272,7 @@ const SimpleTodayAttendancePage = () => {
                         <Clock className="h-4 w-4 text-blue-400" />
                         <span className="text-sm text-gray-300">
                           وقت الحضور:{" "}
-                          {new Date(attendee.lastAttendance).toLocaleTimeString(
-                            "ar-DZ",
-                            {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            },
-                          )}
+                          {formatTimeAlgeria(attendee.lastAttendance)}
                         </span>
                       </div>
 

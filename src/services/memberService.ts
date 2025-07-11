@@ -14,7 +14,7 @@ export interface Member {
   membershipType?: string;
   membershipStartDate?: string;
   membershipEndDate?: string;
-  subscriptionType?: "13 حصة" | "15 حصة" | "20 حصة" | "30 حصة";
+  subscriptionType?: "13 حصة" | "15 حصة" | "30 حصة";
   sessionsRemaining?: number;
   subscriptionPrice?: number;
   paymentStatus?: "paid" | "unpaid" | "partial";

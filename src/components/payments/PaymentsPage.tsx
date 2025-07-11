@@ -702,6 +702,27 @@ const PaymentsPage = () => {
     fetchStatistics();
   }, [refreshPaymentsList]);
 
+  // Listen for pricing updates to refresh statistics
+  useEffect(() => {
+    const handlePricingUpdate = () => {
+      console.log("PaymentsPage: Pricing updated, refreshing statistics");
+      setTimeout(() => {
+        fetchStatistics();
+        setRefreshPaymentsList((prev) => prev + 1);
+      }, 100);
+    };
+
+    window.addEventListener("pricing-updated", handlePricingUpdate);
+    window.addEventListener("storage", handlePricingUpdate);
+    window.addEventListener("paymentsUpdated", handlePricingUpdate);
+
+    return () => {
+      window.removeEventListener("pricing-updated", handlePricingUpdate);
+      window.removeEventListener("storage", handlePricingUpdate);
+      window.removeEventListener("paymentsUpdated", handlePricingUpdate);
+    };
+  }, []);
+
   return (
     <div className="space-y-4 max-w-6xl mx-auto p-4">
       {/* Simple Welcome Header */}

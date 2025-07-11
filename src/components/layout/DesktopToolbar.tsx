@@ -571,19 +571,14 @@ const DesktopToolbar = ({
       }
 
       // Import settings
-      if (settings && typeof settings === "object") {
-        if ((settings as any).pricing) {
-          localStorage.setItem("gymPricingSettings", (settings as any).pricing);
-        }
-        if ((settings as any).user) {
-          localStorage.setItem("gymUserSettings", (settings as any).user);
-        }
-        if ((settings as any).notifications) {
-          localStorage.setItem(
-            "gymNotificationSettings",
-            (settings as any).notifications,
-          );
-        }
+      if (settings.pricing) {
+        localStorage.setItem("gymPricingSettings", settings.pricing);
+      }
+      if (settings.user) {
+        localStorage.setItem("gymUserSettings", settings.user);
+      }
+      if (settings.notifications) {
+        localStorage.setItem("gymNotificationSettings", settings.notifications);
       }
 
       toast({

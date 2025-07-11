@@ -320,36 +320,38 @@ const MobileNavigation = ({
             </span>
           </motion.div>
           {/* Today's Attendance Button */}
-          {/* Floating Action Buttons - Positioned higher above menu bar */}
-          <div className="absolute -top-20 sm:-top-24 inset-x-0 flex justify-center items-center gap-3 z-20 pointer-events-none">
-            {/* Add Session Button */}
-            <motion.div
-              className="p-3 sm:p-4 rounded-full bg-gradient-to-r from-yellow-500 to-yellow-600 shadow-2xl border-2 border-white/30 pointer-events-auto backdrop-blur-sm"
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={onAddSessionClick}
-            >
-              <Plus size={18} className="sm:w-5 sm:h-5 text-white" />
-            </motion.div>
-            {/* Search Button - Larger */}
-            <motion.div
-              className="p-4 sm:p-5 rounded-full bg-gradient-to-r from-yellow-500 to-yellow-600 shadow-2xl border-2 border-white/30 pointer-events-auto backdrop-blur-sm"
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={handleSearch}
-            >
-              <Search size={24} className="sm:w-7 sm:h-7 text-white" />
-            </motion.div>
-            {/* Add Member Button */}
-            <motion.div
-              className="p-3 sm:p-4 rounded-full bg-gradient-to-r from-yellow-500 to-yellow-600 shadow-2xl border-2 border-white/30 pointer-events-auto backdrop-blur-sm"
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={onAddMemberClick}
-            >
-              <Users size={18} className="sm:w-5 sm:h-5 text-white" />
-            </motion.div>
-          </div>
+          {/* Floating Action Buttons - Only show on specific pages */}
+          {(activeItem === "dashboard" || activeItem === "attendance") && (
+            <div className="absolute -top-20 sm:-top-24 inset-x-0 flex justify-center items-center gap-3 z-20 pointer-events-none">
+              {/* Add Session Button */}
+              <motion.div
+                className="p-3 sm:p-4 rounded-full bg-gradient-to-r from-yellow-500 to-yellow-600 shadow-2xl border-2 border-white/30 pointer-events-auto backdrop-blur-sm"
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={onAddSessionClick}
+              >
+                <Plus size={18} className="sm:w-5 sm:h-5 text-white" />
+              </motion.div>
+              {/* Search Button - Larger */}
+              <motion.div
+                className="p-4 sm:p-5 rounded-full bg-gradient-to-r from-yellow-500 to-yellow-600 shadow-2xl border-2 border-white/30 pointer-events-auto backdrop-blur-sm"
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={handleSearch}
+              >
+                <Search size={24} className="sm:w-7 sm:h-7 text-white" />
+              </motion.div>
+              {/* Add Member Button */}
+              <motion.div
+                className="p-3 sm:p-4 rounded-full bg-gradient-to-r from-yellow-500 to-yellow-600 shadow-2xl border-2 border-white/30 pointer-events-auto backdrop-blur-sm"
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={onAddMemberClick}
+              >
+                <Users size={18} className="sm:w-5 sm:h-5 text-white" />
+              </motion.div>
+            </div>
+          )}
           <motion.div
             className={`flex flex-col items-center p-1.5 sm:p-2 rounded-xl min-w-[45px] sm:min-w-[50px] transition-all duration-200 ${activeItem === "payments" ? "bg-gradient-to-r from-blue-500/30 to-purple-500/30 border border-blue-400/30 shadow-lg" : "hover:bg-white/10 hover:shadow-md"}`}
             whileTap={{ scale: 0.9 }}

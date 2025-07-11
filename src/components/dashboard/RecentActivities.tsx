@@ -76,8 +76,8 @@ const getTimeAgo = (timestamp: string) => {
   }
 };
 
-const RecentActivities = ({ limit = 5 }: RecentActivitiesProps) => {
-  const { activities, loading, refreshActivities } = useRecentActivities();
+const RecentActivities = ({ limit = 50 }: RecentActivitiesProps) => {
+  const { activities, loading, refreshActivities } = useRecentActivities(50);
 
   // Debug log to check if activities are being loaded
   React.useEffect(() => {
@@ -89,7 +89,7 @@ const RecentActivities = ({ limit = 5 }: RecentActivitiesProps) => {
       <CardHeader className="flex flex-row items-center justify-between pb-4 border-b border-slate-700/50 bg-gradient-to-r from-slate-800/50 to-slate-700/30">
         <CardTitle className="text-xl font-bold bg-gradient-to-r from-emerald-400 via-blue-400 to-purple-400 bg-clip-text text-transparent flex items-center gap-2">
           <Activity className="h-5 w-5 text-emerald-400" />
-          النشاطات الأخيرة
+          جميع النشاطات الأخيرة
         </CardTitle>
         <Button
           variant="ghost"
@@ -125,7 +125,7 @@ const RecentActivities = ({ limit = 5 }: RecentActivitiesProps) => {
               </div>
             </div>
           ) : (
-            activities.slice(0, limit).map((activity, index) => (
+            activities.map((activity, index) => (
               <div
                 key={activity.id || index}
                 className="group flex items-center gap-4 p-4 rounded-xl bg-gradient-to-r from-slate-800/60 via-slate-700/40 to-slate-800/60 hover:from-slate-700/70 hover:via-slate-600/50 hover:to-slate-700/70 border border-slate-600/30 hover:border-slate-500/50 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl backdrop-blur-sm"
@@ -174,7 +174,7 @@ const RecentActivities = ({ limit = 5 }: RecentActivitiesProps) => {
           )}
         </div>
 
-        {activities.length > limit && (
+        {activities.length > 10 && (
           <div className="flex justify-center mt-8 pt-6 border-t border-slate-700/50">
             <Button
               variant="ghost"
@@ -182,7 +182,7 @@ const RecentActivities = ({ limit = 5 }: RecentActivitiesProps) => {
               className="text-sm flex items-center gap-2 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 rounded-full px-6 py-3 font-medium transition-all duration-200 hover:scale-105 border border-emerald-500/20 hover:border-emerald-400/40 shadow-lg"
               onClick={() => (window.location.href = "/reports")}
             >
-              عرض جميع النشاطات ({formatNumber(activities.length)})
+              عرض تقارير مفصلة ({formatNumber(activities.length)})
               <ArrowUpRight className="h-4 w-4" />
             </Button>
           </div>
