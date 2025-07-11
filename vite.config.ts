@@ -6,6 +6,7 @@ import { resolve } from "path";
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  base: "/",
   plugins: [
     react({
       // Enable React Fast Refresh optimizations
@@ -13,7 +14,7 @@ export default defineConfig({
       // Use SWC for faster compilation
       jsxImportSource: undefined,
     }),
-    tempo(),
+    ...(process.env.VITE_TEMPO === "true" ? [tempo()] : []),
     VitePWA({
       registerType: "autoUpdate",
       workbox: {
@@ -187,6 +188,8 @@ export default defineConfig({
   build: {
     target: "esnext",
     minify: "terser",
+    outDir: "dist",
+    emptyOutDir: true,
     terserOptions: {
       compress: {
         drop_console: true,
@@ -294,7 +297,7 @@ export default defineConfig({
       "framer-motion",
       "lucide-react",
     ],
-    exclude: ["tempo-devtools"],
+    exclude: ["tempo-devtools", "tempo-routes"],
   },
   // Enable esbuild optimizations
   esbuild: {

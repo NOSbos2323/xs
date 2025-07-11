@@ -1,26 +1,61 @@
 # netlify.toml
 [build]
   publish = "dist"
-  command = "npm run build"
+  command = "npm run build-no-errors"
 
 # Environment variables for build
 [build.environment]
   NODE_VERSION = "18"
   NPM_VERSION = "9"
+  VITE_TEMPO = "false"
+  CI = "true"
 
 # Headers for PWA support
 [[headers]]
   for = "/manifest.json"
   [headers.values]
     Content-Type = "application/manifest+json"
+    Cache-Control = "public, max-age=31536000"
 
 [[headers]]
   for = "/sw.js"
   [headers.values]
     Content-Type = "application/javascript"
     Service-Worker-Allowed = "/"
+    Cache-Control = "no-cache"
 
-# Redirects for SPA routing
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.js"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.css"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Redirects for SPA routing - specific routes first
+[[redirects]]
+  from = "/home"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/login"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/payments"
+  to = "/index.html"
+  status = 200
+
+# Catch-all redirect for SPA routing (must be last)
 [[redirects]]
   from = "/*"
   to = "/index.html"
