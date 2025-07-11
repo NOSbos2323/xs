@@ -174,128 +174,104 @@ const SimpleTodayAttendancePage = () => {
             {todayAttendees.map((attendee, index) => (
               <div
                 key={attendee.id || index}
-                className={`bg-gradient-to-br backdrop-blur-xl shadow-xl rounded-2xl p-4 hover:shadow-2xl transition-all duration-300 hover:scale-[1.02] ${
-                  !attendee.isSessionPayment &&
-                  (attendee.paymentStatus === "unpaid" ||
-                    attendee.paymentStatus === "partial" ||
-                    attendee.membershipStatus === "pending" ||
-                    (attendee.sessionsRemaining !== undefined &&
-                      attendee.sessionsRemaining === 0) ||
-                    (attendee.membershipStartDate &&
-                      new Date() >
-                        new Date(
-                          new Date(attendee.membershipStartDate).setMonth(
-                            new Date(attendee.membershipStartDate).getMonth() +
-                              1,
-                          ),
-                        )))
-                    ? "from-red-900/80 to-red-800/80 border border-red-500/50"
-                    : "from-bluegray-800/80 to-bluegray-900/80 border border-bluegray-600/50"
-                }`}
+                className="group flex items-center gap-4 p-4 rounded-xl bg-gradient-to-r from-slate-800/60 via-slate-700/40 to-slate-800/60 hover:from-slate-700/70 hover:via-slate-600/50 hover:to-slate-700/70 border border-slate-600/30 hover:border-slate-500/50 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl backdrop-blur-sm"
+                style={{
+                  animationDelay: `${index * 100}ms`,
+                  animation: "fadeInUp 0.6s ease-out forwards",
+                }}
               >
-                <div className="flex items-center space-x-4 space-x-reverse">
-                  <Avatar className="h-14 w-14 border-2 border-bluegray-600 shadow-lg">
-                    <AvatarImage src={attendee.imageUrl} alt={attendee.name} />
-                    <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-lg font-semibold">
+                <div className="relative w-14 h-14 rounded-full bg-gradient-to-br from-slate-700/80 to-slate-800/80 flex items-center justify-center ring-2 ring-slate-600/40 group-hover:ring-slate-500/60 transition-all duration-300 shadow-lg">
+                  {attendee.imageUrl ? (
+                    <img
+                      src={attendee.imageUrl}
+                      alt={attendee.name}
+                      className="w-full h-full rounded-full object-cover border-2 border-slate-600/50"
+                    />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500/20 to-blue-500/20 flex items-center justify-center text-white text-lg font-semibold">
                       {attendee.name
                         .split(" ")
                         .map((n) => n[0])
                         .join("")
                         .slice(0, 2)}
-                    </AvatarFallback>
-                  </Avatar>
-
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between mb-2">
-                      <h3
-                        className={`text-lg font-semibold truncate ${
-                          !attendee.isSessionPayment &&
-                          (attendee.paymentStatus === "unpaid" ||
-                            attendee.paymentStatus === "partial" ||
-                            attendee.membershipStatus === "pending" ||
-                            (attendee.sessionsRemaining !== undefined &&
-                              attendee.sessionsRemaining === 0) ||
-                            (attendee.membershipStartDate &&
-                              new Date() >
-                                new Date(
-                                  new Date(
-                                    attendee.membershipStartDate,
-                                  ).setMonth(
-                                    new Date(
-                                      attendee.membershipStartDate,
-                                    ).getMonth() + 1,
-                                  ),
-                                )))
-                            ? "!text-red-300 text-red-300"
-                            : "text-white"
-                        }`}
-                        style={
-                          !attendee.isSessionPayment &&
-                          (attendee.paymentStatus === "unpaid" ||
-                            attendee.paymentStatus === "partial" ||
-                            attendee.membershipStatus === "pending" ||
-                            (attendee.sessionsRemaining !== undefined &&
-                              attendee.sessionsRemaining === 0) ||
-                            (attendee.membershipStartDate &&
-                              new Date() >
-                                new Date(
-                                  new Date(
-                                    attendee.membershipStartDate,
-                                  ).setMonth(
-                                    new Date(
-                                      attendee.membershipStartDate,
-                                    ).getMonth() + 1,
-                                  ),
-                                )))
-                            ? { color: "#fca5a5 !important" }
-                            : {}
-                        }
-                      >
-                        {attendee.name}
-                      </h3>
-                      <Badge
-                        variant={
-                          attendee.isSessionPayment ? "secondary" : "default"
-                        }
-                        className={`text-sm px-3 py-1 ${
-                          attendee.isSessionPayment
-                            ? "bg-purple-500/20 text-purple-300 border-purple-500/30"
-                            : "bg-green-500/20 text-green-300 border-green-500/30"
-                        }`}
-                      >
-                        {attendee.isSessionPayment ? "حصة مؤقتة" : "عضو مشترك"}
-                      </Badge>
                     </div>
-
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-3">
-                        <Clock className="h-4 w-4 text-blue-400" />
-                        <span className="text-sm text-gray-300">
-                          وقت الحضور:{" "}
-                          {formatTimeAlgeria(attendee.lastAttendance)}
-                        </span>
-                      </div>
-
-                      {!attendee.isSessionPayment &&
-                        attendee.sessionsRemaining !== undefined && (
-                          <div className="flex items-center gap-3">
-                            <Users className="h-4 w-4 text-green-400" />
-                            <span className="text-sm text-green-300">
-                              الحصص المتبقية:{" "}
-                              {formatNumber(attendee.sessionsRemaining)} حصة
-                            </span>
-                          </div>
-                        )}
-
-                      {attendee.phoneNumber && (
-                        <div className="flex items-center gap-3">
-                          <span className="text-sm text-gray-400">
-                            📱 {attendee.phoneNumber}
-                          </span>
-                        </div>
-                      )}
-                    </div>
+                  )}
+                  <div className="absolute -top-1 -right-1 w-5 h-5 bg-gradient-to-r from-emerald-400 to-emerald-500 rounded-full border-2 border-slate-800 shadow-lg flex items-center justify-center">
+                    <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
                   </div>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="font-semibold text-slate-100 group-hover:text-white transition-colors duration-200 truncate text-base">
+                      {attendee.name}
+                    </p>
+                    <Badge
+                      variant="secondary"
+                      className={`text-xs px-2 py-1 ${
+                        attendee.isSessionPayment
+                          ? "bg-purple-500/20 text-purple-300 border-purple-500/30"
+                          : !attendee.isSessionPayment &&
+                              (attendee.paymentStatus === "unpaid" ||
+                                attendee.paymentStatus === "partial" ||
+                                attendee.membershipStatus === "pending" ||
+                                (attendee.sessionsRemaining !== undefined &&
+                                  attendee.sessionsRemaining === 0) ||
+                                (attendee.membershipStartDate &&
+                                  new Date() >
+                                    new Date(
+                                      new Date(
+                                        attendee.membershipStartDate,
+                                      ).setMonth(
+                                        new Date(
+                                          attendee.membershipStartDate,
+                                        ).getMonth() + 1,
+                                      ),
+                                    )))
+                            ? "bg-red-500/20 text-red-300 border-red-500/30"
+                            : "bg-green-500/20 text-green-300 border-green-500/30"
+                      }`}
+                    >
+                      {attendee.isSessionPayment
+                        ? "حصة مؤقتة"
+                        : !attendee.isSessionPayment &&
+                            (attendee.paymentStatus === "unpaid" ||
+                              attendee.paymentStatus === "partial" ||
+                              attendee.membershipStatus === "pending" ||
+                              (attendee.sessionsRemaining !== undefined &&
+                                attendee.sessionsRemaining === 0) ||
+                              (attendee.membershipStartDate &&
+                                new Date() >
+                                  new Date(
+                                    new Date(
+                                      attendee.membershipStartDate,
+                                    ).setMonth(
+                                      new Date(
+                                        attendee.membershipStartDate,
+                                      ).getMonth() + 1,
+                                    ),
+                                  )))
+                          ? "غير مدفوع"
+                          : "مدفوع"}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Clock className="h-3 w-3 text-slate-400" />
+                    <p className="text-sm text-slate-400 group-hover:text-slate-300 transition-colors duration-200">
+                      {formatTimeAlgeria(attendee.lastAttendance).split(" ")[1]}
+                    </p>
+                  </div>
+                  {!attendee.isSessionPayment &&
+                    attendee.sessionsRemaining !== undefined && (
+                      <p className="text-xs text-slate-500 group-hover:text-slate-400 transition-colors duration-200 mt-1 truncate">
+                        الحصص المتبقية:{" "}
+                        {formatNumber(attendee.sessionsRemaining)} حصة
+                      </p>
+                    )}
+                  {attendee.phoneNumber && (
+                    <p className="text-xs text-slate-500 group-hover:text-slate-400 transition-colors duration-200 mt-1 truncate">
+                      📱 {attendee.phoneNumber}
+                    </p>
+                  )}
                 </div>
               </div>
             ))}

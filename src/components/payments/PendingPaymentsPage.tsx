@@ -424,151 +424,151 @@ const PendingPaymentsPage = ({ onBack }: PendingPaymentsPageProps) => {
                   </div>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 p-3 pb-20 lg:pb-6">
+                <div className="space-y-3 p-3 pb-20 lg:pb-6">
                   {filteredMembers.map((member, index) => (
                     <motion.div
                       key={member.id}
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.3, delay: index * 0.05 }}
-                      whileHover={{ scale: 1.02 }}
+                      className="group flex items-stretch gap-3 p-3 rounded-xl bg-gradient-to-r from-slate-800/60 via-slate-700/40 to-slate-800/60 hover:from-slate-700/70 hover:via-slate-600/50 hover:to-slate-700/70 border border-red-500/50 hover:border-red-400/60 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl backdrop-blur-sm min-h-[80px]"
+                      style={{
+                        animationDelay: `${index * 100}ms`,
+                        animation: "fadeInUp 0.6s ease-out forwards",
+                      }}
                     >
-                      <Card className="overflow-hidden backdrop-blur-xl bg-gradient-to-br from-slate-700/60 to-slate-800/60 border border-red-500/50 shadow-lg hover:shadow-xl transition-all duration-200 w-full hover:border-red-400/60">
-                        <CardContent className="p-2.5 h-full flex flex-col">
-                          {/* Header Section with Avatar and Name */}
-                          <div className="flex items-center gap-2 mb-3">
-                            <Avatar className="h-10 w-10 border-2 border-red-400/50 shadow-lg flex-shrink-0">
-                              <AvatarImage
-                                src={member.imageUrl}
-                                alt={member.name}
-                              />
-                              <AvatarFallback className="bg-gradient-to-br from-red-500 to-orange-600 text-white text-xs font-bold">
-                                {member.name.substring(0, 2)}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div className="flex-1 min-w-0">
-                              <h3 className="text-sm font-bold text-white truncate mb-1">
-                                {member.name}
-                              </h3>
-                              {member.phoneNumber && (
-                                <div className="flex items-center gap-1 text-blue-300">
-                                  <Phone className="h-3 w-3 flex-shrink-0" />
-                                  <span className="text-xs font-medium truncate">
-                                    {member.phoneNumber}
-                                  </span>
-                                </div>
-                              )}
-                            </div>
+                      {/* Avatar Section */}
+                      <div className="relative w-12 h-12 rounded-full bg-gradient-to-br from-slate-700/80 to-slate-800/80 flex items-center justify-center ring-2 ring-red-500/40 group-hover:ring-red-400/60 transition-all duration-300 shadow-lg flex-shrink-0 self-center">
+                        {member.imageUrl ? (
+                          <img
+                            src={member.imageUrl}
+                            alt={member.name}
+                            className="w-full h-full rounded-full object-cover border-2 border-slate-600/50"
+                          />
+                        ) : (
+                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-red-500/20 to-orange-500/20 flex items-center justify-center">
+                            <User className="h-4 w-4 text-red-400" />
                           </div>
+                        )}
+                        <div className="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-r from-red-400 to-red-500 rounded-full border-2 border-slate-800 shadow-lg flex items-center justify-center">
+                          <AlertTriangle className="w-2 h-2 text-white" />
+                        </div>
+                      </div>
 
-                          {/* Main Content Area - Flexible */}
-                          <div className="flex-1 space-y-2">
-                            {/* Sessions & Price Row */}
-                            <div className="grid grid-cols-2 gap-2">
-                              {/* Sessions Remaining */}
-                              {member.subscriptionType &&
-                                member.sessionsRemaining !== undefined && (
-                                  <div className="bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-lg p-2 border border-blue-400/30">
-                                    <div className="text-center">
-                                      <Badge className="bg-gradient-to-r from-blue-500 to-purple-600 text-white text-xs px-2 py-1 font-bold mb-1">
-                                        {formatNumber(member.sessionsRemaining)}
-                                      </Badge>
-                                      <div className="text-xs text-blue-300 font-medium">
-                                        حصة متبقية
-                                      </div>
-                                    </div>
-                                  </div>
-                                )}
-
-                              {/* Subscription Price */}
-                              {member.subscriptionType && (
-                                <div className="bg-gradient-to-r from-green-500/20 to-emerald-500/20 rounded-lg p-2 border border-green-400/30">
-                                  <div className="text-center">
-                                    <div className="text-xs font-bold text-green-400 mb-1">
-                                      {formatNumber(
-                                        getCurrentPrice(
-                                          member.subscriptionType,
-                                        ),
-                                      )}{" "}
-                                      دج
-                                    </div>
-                                    {member.paymentStatus === "partial" &&
-                                      member.partialPaymentAmount && (
-                                        <div className="text-xs text-yellow-400">
-                                          مدفوع:{" "}
-                                          {formatNumber(
-                                            member.partialPaymentAmount,
-                                          )}{" "}
-                                          دج
-                                        </div>
-                                      )}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-
-                            {/* Status Row */}
-                            <div className="flex items-center justify-between gap-2">
-                              {/* Payment Status */}
-                              <Badge
-                                className={`text-xs px-2 py-1 flex-1 text-center ${
-                                  member.paymentStatus === "unpaid"
-                                    ? "bg-gradient-to-r from-red-500 to-red-600 text-white"
-                                    : member.paymentStatus === "partial"
-                                      ? "bg-gradient-to-r from-yellow-500 to-orange-500 text-white"
-                                      : "bg-gradient-to-r from-green-500 to-emerald-500 text-white"
-                                }`}
-                              >
-                                {member.paymentStatus === "unpaid" &&
-                                  "غير مدفوع"}
-                                {member.paymentStatus === "partial" && "جزئي"}
-                                {member.paymentStatus === "paid" && "مدفوع"}
+                      {/* Main Content - Distributed Layout */}
+                      <div className="flex-1 min-w-0 flex flex-col justify-between py-1">
+                        {/* Top Row: Name and Badges */}
+                        <div className="flex items-center justify-between gap-2 mb-1">
+                          <h3 className="font-semibold text-slate-100 group-hover:text-white transition-colors duration-200 truncate text-sm">
+                            {member.name}
+                          </h3>
+                          <div className="flex items-center gap-1 flex-shrink-0">
+                            {/* Payment Status Badge */}
+                            <Badge
+                              className={`text-xs px-1.5 py-0.5 ${
+                                member.paymentStatus === "unpaid"
+                                  ? "bg-gradient-to-r from-red-500 to-red-600 text-white"
+                                  : member.paymentStatus === "partial"
+                                    ? "bg-gradient-to-r from-yellow-500 to-orange-500 text-white"
+                                    : "bg-gradient-to-r from-green-500 to-emerald-500 text-white"
+                              }`}
+                            >
+                              {member.paymentStatus === "unpaid" && "غير مدفوع"}
+                              {member.paymentStatus === "partial" && "جزئي"}
+                              {member.paymentStatus === "paid" && "مدفوع"}
+                            </Badge>
+                            {/* Subscription Type Badge */}
+                            {member.subscriptionType && (
+                              <Badge className="bg-gradient-to-r from-purple-500 to-pink-600 text-white text-xs px-1.5 py-0.5">
+                                {member.subscriptionType.split(" ")[0]}
                               </Badge>
+                            )}
+                          </div>
+                        </div>
 
-                              {/* Subscription Type */}
-                              {member.subscriptionType && (
-                                <Badge className="bg-gradient-to-r from-purple-500 to-pink-600 text-white text-xs px-2 py-1 flex-1 text-center">
-                                  {member.subscriptionType.split(" ")[0]}
-                                </Badge>
-                              )}
-                            </div>
-
-                            {/* Date */}
+                        {/* Middle Row: Contact and Date Info */}
+                        <div className="flex items-center justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            {member.phoneNumber && (
+                              <div className="flex items-center gap-1 text-blue-300">
+                                <Phone className="h-3 w-3 flex-shrink-0" />
+                                <span className="text-xs text-slate-400 group-hover:text-slate-300 transition-colors duration-200 truncate">
+                                  {member.phoneNumber}
+                                </span>
+                              </div>
+                            )}
                             {member.membershipStartDate && (
-                              <div className="text-xs text-gray-400 text-center bg-slate-700/30 rounded-md py-1 px-2">
-                                {formatDate(member.membershipStartDate)}
+                              <div className="flex items-center gap-1">
+                                <Calendar className="h-3 w-3 text-slate-400" />
+                                <span className="text-xs text-slate-400 group-hover:text-slate-300 transition-colors duration-200">
+                                  {formatDate(member.membershipStartDate)}
+                                </span>
                               </div>
                             )}
                           </div>
+                        </div>
 
-                          {/* Action Buttons - Fixed at Bottom */}
-                          <div className="grid grid-cols-2 gap-1 mt-2 pt-2 border-t border-slate-600/30">
-                            {/* End of Month Message Button */}
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-7 px-1.5 text-xs border-orange-500/50 text-orange-300 hover:bg-orange-500/20 hover:border-orange-400 transition-all duration-200"
-                              onClick={() =>
-                                handleSendEndOfMonthMessage(member)
-                              }
-                            >
-                              <Send className="h-3 w-3 mr-1" />
-                              رسالة
-                            </Button>
-
-                            {/* Edit Button */}
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-7 px-1.5 text-xs border-blue-500/50 text-blue-300 hover:bg-blue-500/20 hover:border-blue-400 transition-all duration-200"
-                              onClick={() => handleEditMember(member)}
-                            >
-                              <Edit className="h-3 w-3 mr-1" />
-                              تعديل
-                            </Button>
+                        {/* Bottom Row: Price and Sessions */}
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-3 text-xs flex-1">
+                            {member.subscriptionType && (
+                              <div className="flex items-center gap-1 text-green-400">
+                                <DollarSign className="h-3 w-3" />
+                                <span className="whitespace-nowrap">
+                                  {formatNumber(
+                                    getCurrentPrice(member.subscriptionType),
+                                  )}{" "}
+                                  دج
+                                </span>
+                                {member.paymentStatus === "partial" &&
+                                  member.partialPaymentAmount && (
+                                    <span className="text-yellow-400 text-xs whitespace-nowrap">
+                                      (مدفوع:{" "}
+                                      {formatNumber(
+                                        member.partialPaymentAmount,
+                                      )}{" "}
+                                      دج)
+                                    </span>
+                                  )}
+                              </div>
+                            )}
+                            {member.subscriptionType &&
+                              member.sessionsRemaining !== undefined && (
+                                <div className="flex items-center gap-1 text-blue-400">
+                                  <Clock className="h-3 w-3" />
+                                  <span className="whitespace-nowrap">
+                                    {formatNumber(member.sessionsRemaining)} حصة
+                                  </span>
+                                </div>
+                              )}
                           </div>
-                        </CardContent>
-                      </Card>
+                        </div>
+                      </div>
+
+                      {/* Action Buttons - Vertical Layout */}
+                      <div className="flex flex-col gap-1 opacity-100 lg:opacity-0 group-hover:opacity-100 transition-all duration-300 justify-center flex-shrink-0">
+                        {/* Send Message Button */}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 px-2 text-xs border-orange-500/50 text-orange-300 hover:bg-orange-500/20 hover:border-orange-400 transition-all duration-200 min-w-[60px]"
+                          onClick={() => handleSendEndOfMonthMessage(member)}
+                        >
+                          <Send className="h-3 w-3 mr-1" />
+                          رسالة
+                        </Button>
+
+                        {/* Edit Button */}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 px-2 text-xs border-blue-500/50 text-blue-300 hover:bg-blue-500/20 hover:border-blue-400 transition-all duration-200 min-w-[60px]"
+                          onClick={() => handleEditMember(member)}
+                        >
+                          <Edit className="h-3 w-3 mr-1" />
+                          تعديل
+                        </Button>
+                      </div>
                     </motion.div>
                   ))}
                 </div>
