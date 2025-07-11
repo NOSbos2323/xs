@@ -302,6 +302,9 @@ export default defineConfig({
     ],
     exclude: ["tempo-devtools", "tempo-routes"],
     force: true,
+    esbuildOptions: {
+      target: "esnext",
+    },
   },
   // Enable esbuild optimizations
   esbuild: {

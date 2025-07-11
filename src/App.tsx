@@ -27,8 +27,15 @@ function App() {
   // Initialize routes conditionally
   const [tempoRoutes, setTempoRoutes] = useState<any[]>([]);
   const [routesLoaded, setRoutesLoaded] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+
     const loadRoutes = async () => {
       if (import.meta.env.VITE_TEMPO) {
         try {
@@ -46,10 +53,10 @@ function App() {
       setRoutesLoaded(true);
     };
     loadRoutes();
-  }, []);
+  }, [mounted]);
 
-  // Don't render anything until routes are loaded to prevent hydration issues
-  if (!routesLoaded) {
+  // Don't render anything until mounted and routes are loaded to prevent hydration issues
+  if (!mounted || !routesLoaded) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
         <div className="text-center">
