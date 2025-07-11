@@ -1,16 +1,5 @@
 import React from "react";
-import { Routes, Route } from "react-router-dom";
-import { useRoutes } from "react-router-dom";
-// Import routes conditionally to avoid build errors
-let routes: any[] = [];
-try {
-  if (import.meta.env.VITE_TEMPO) {
-    routes = (await import("tempo-routes")).default;
-  }
-} catch (error) {
-  console.log("Tempo routes not available");
-  routes = [];
-}
+import { Routes, Route, useRoutes } from "react-router-dom";
 import { lazy, Suspense } from "react";
 import { createLazyComponent } from "./utils/performance";
 import PWAInstallBanner from "./components/ui/pwa-install-banner";
@@ -53,11 +42,24 @@ function App() {
     loadRoutes();
   }, []);
 
+  // Render tempo routes if available
+  const tempoRoutesElement =
+    import.meta.env.VITE_TEMPO && tempoRoutes.length > 0
+      ? useRoutes(tempoRoutes)
+      : null;
+
+  // If tempo routes match, render them
+  if (tempoRoutesElement) {
+    return (
+      <div className="min-h-screen bg-background">
+        {tempoRoutesElement}
+        <PWAInstallBanner />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
-      {/* For the tempo routes */}
-      {import.meta.env.VITE_TEMPO && useRoutes(tempoRoutes)}
-
       <Suspense fallback={<PageLoader />}>
         <Routes>
           <Route path="/home" element={<Home />} />

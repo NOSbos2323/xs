@@ -27,7 +27,12 @@ export default defineConfig({
         offlineGoogleAnalytics: false, // Disable for better offline performance
         // Complete offline navigation support
         navigateFallback: "/index.html",
-        navigateFallbackDenylist: [/^\/_/, /\/[^/?]+\.[^/]+$/, /^\/api\//],
+        navigateFallbackDenylist: [
+          /^\/_/,
+          /\/[^/?]+\.[^/]+$/,
+          /^\/api\//,
+          /^\/tempobook\//,
+        ],
         // Cache all routes for offline access
         navigateFallbackAllowlist: [
           /^(?!.*\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot|mp3|json)$).*/,

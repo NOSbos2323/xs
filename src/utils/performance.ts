@@ -130,7 +130,7 @@ export const clearOldCaches = async () => {
   if ("caches" in window) {
     try {
       const cacheNames = await caches.keys();
-      const currentVersion = "amino-gym-v2";
+      const currentVersion = "amino-gym-v4";
       const oldCaches = cacheNames.filter(
         (name) =>
           !name.includes(currentVersion) &&
