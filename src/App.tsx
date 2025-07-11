@@ -31,12 +31,16 @@ function App() {
     const loadRoutes = async () => {
       if (import.meta.env.VITE_TEMPO) {
         try {
-          const routesModule = await import("tempo-routes");
+          // Use dynamic import with a variable to avoid TypeScript module resolution issues
+          const moduleName = "tempo-routes";
+          const routesModule = await import(/* @vite-ignore */ moduleName);
           setTempoRoutes(routesModule.default || []);
         } catch (error) {
-          console.log("Tempo routes not available");
+          console.log("Tempo routes not available:", error);
           setTempoRoutes([]);
         }
+      } else {
+        setTempoRoutes([]);
       }
     };
     loadRoutes();
