@@ -14,7 +14,10 @@ export default defineConfig({
       // Use SWC for faster compilation
       jsxImportSource: undefined,
     }),
-    ...(process.env.VITE_TEMPO === "true" ? [tempo()] : []),
+    ...(import.meta.env?.VITE_TEMPO === "true" ||
+    process.env.VITE_TEMPO === "true"
+      ? [tempo()]
+      : []),
     VitePWA({
       registerType: "autoUpdate",
       workbox: {
@@ -298,6 +301,7 @@ export default defineConfig({
       "lucide-react",
     ],
     exclude: ["tempo-devtools", "tempo-routes"],
+    force: true,
   },
   // Enable esbuild optimizations
   esbuild: {

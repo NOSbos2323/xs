@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Routes, Route, useRoutes } from "react-router-dom";
 import { lazy, Suspense } from "react";
 import { createLazyComponent } from "./utils/performance";
@@ -25,7 +25,8 @@ const PageLoader = () => (
 
 function App() {
   // Initialize routes conditionally
-  const [tempoRoutes, setTempoRoutes] = React.useState<any[]>([]);
+  const [tempoRoutes, setTempoRoutes] = useState<any[]>([]);
+  const [routesLoaded, setRoutesLoaded] = useState(false);
 
   useEffect(() => {
     const loadRoutes = async () => {
@@ -42,9 +43,22 @@ function App() {
       } else {
         setTempoRoutes([]);
       }
+      setRoutesLoaded(true);
     };
     loadRoutes();
   }, []);
+
+  // Don't render anything until routes are loaded to prevent hydration issues
+  if (!routesLoaded) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-yellow-500 animate-pulse" />
+          <p className="text-white text-sm">جاري التحميل...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Render tempo routes if available
   const tempoRoutesElement =

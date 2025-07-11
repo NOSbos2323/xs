@@ -49,10 +49,18 @@ if ("serviceWorker" in navigator) {
 }
 
 // Network status context with enhanced offline detection
-const createNetworkStatusContext = () => {
-  const [isOnline, setIsOnline] = React.useState(navigator.onLine);
+export const NetworkStatusContext = React.createContext({
+  isOnline: typeof navigator !== "undefined" ? navigator.onLine : true,
+});
+
+const NetworkProvider = ({ children }: { children: React.ReactNode }) => {
+  const [isOnline, setIsOnline] = React.useState(
+    typeof navigator !== "undefined" ? navigator.onLine : true,
+  );
 
   React.useEffect(() => {
+    if (typeof window === "undefined") return;
+
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
 
@@ -65,17 +73,8 @@ const createNetworkStatusContext = () => {
     };
   }, []);
 
-  return { isOnline };
-};
-
-export const NetworkStatusContext = React.createContext({
-  isOnline: navigator.onLine,
-});
-
-const NetworkProvider = ({ children }: { children: React.ReactNode }) => {
-  const networkStatus = createNetworkStatusContext();
   return (
-    <NetworkStatusContext.Provider value={networkStatus}>
+    <NetworkStatusContext.Provider value={{ isOnline }}>
       {children}
     </NetworkStatusContext.Provider>
   );
