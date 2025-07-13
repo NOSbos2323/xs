@@ -6,10 +6,23 @@ import { debounce, batchUpdates } from "./performance";
 localforage.config({
   driver: [localforage.INDEXEDDB, localforage.WEBSQL, localforage.LOCALSTORAGE],
   name: "AminoGymPWA",
-  version: 2.0,
+  version: 3.0,
   storeName: "amino_gym_data",
   description:
     "Amino Gym PWA offline data storage with performance optimizations",
+});
+
+// Create separate storage instances for better organization
+const offlineQueueStorage = localforage.createInstance({
+  name: "AminoGymPWA",
+  storeName: "offline_queue",
+  description: "Offline actions queue",
+});
+
+const syncStatusStorage = localforage.createInstance({
+  name: "AminoGymPWA",
+  storeName: "sync_status",
+  description: "Synchronization status and metadata",
 });
 
 // Data compression utilities
@@ -105,8 +118,11 @@ export class OfflineStorageManager {
   private async loadOfflineQueue() {
     try {
       const queue =
-        await localforage.getItem<OfflineAction[]>(OFFLINE_QUEUE_KEY);
+        await offlineQueueStorage.getItem<OfflineAction[]>(OFFLINE_QUEUE_KEY);
       this.offlineQueue = queue || [];
+      console.log(
+        `Loaded ${this.offlineQueue.length} offline actions from storage`,
+      );
     } catch (error) {
       console.error("Error loading offline queue:", error);
       this.offlineQueue = [];
@@ -116,7 +132,11 @@ export class OfflineStorageManager {
   // Save offline queue to storage
   private async saveOfflineQueue() {
     try {
-      await localforage.setItem(OFFLINE_QUEUE_KEY, this.offlineQueue);
+      await offlineQueueStorage.setItem(OFFLINE_QUEUE_KEY, this.offlineQueue);
+      await syncStatusStorage.setItem(
+        "last_queue_update",
+        new Date().toISOString(),
+      );
     } catch (error) {
       console.error("Error saving offline queue:", error);
     }
@@ -140,33 +160,63 @@ export class OfflineStorageManager {
 
   // Process offline queue when back online
   private async processOfflineQueue() {
-    if (this.offlineQueue.length === 0) return;
+    if (this.offlineQueue.length === 0) {
+      console.log("No offline actions to process");
+      return;
+    }
 
     console.log(`Processing ${this.offlineQueue.length} offline actions`);
+    await syncStatusStorage.setItem("sync_in_progress", true);
 
     const processedActions: string[] = [];
+    const failedActions: OfflineAction[] = [];
 
-    for (const action of this.offlineQueue) {
-      try {
-        await this.processOfflineAction(action);
-        processedActions.push(action.id);
-        console.log("Processed offline action:", action.type);
-      } catch (error) {
-        console.error("Error processing offline action:", error);
-        // Keep failed actions in queue for retry
+    // Process actions in batches to avoid overwhelming the system
+    const batchSize = 5;
+    for (let i = 0; i < this.offlineQueue.length; i += batchSize) {
+      const batch = this.offlineQueue.slice(i, i + batchSize);
+
+      await Promise.allSettled(
+        batch.map(async (action) => {
+          try {
+            await this.processOfflineAction(action);
+            processedActions.push(action.id);
+            console.log(
+              `Processed offline action: ${action.type} (${action.id})`,
+            );
+          } catch (error) {
+            console.error(
+              `Error processing offline action ${action.id}:`,
+              error,
+            );
+            failedActions.push(action);
+          }
+        }),
+      );
+
+      // Small delay between batches to prevent overwhelming
+      if (i + batchSize < this.offlineQueue.length) {
+        await new Promise((resolve) => setTimeout(resolve, 100));
       }
     }
 
-    // Remove successfully processed actions
-    this.offlineQueue = this.offlineQueue.filter(
-      (action) => !processedActions.includes(action.id),
-    );
-
+    // Update queue with only failed actions
+    this.offlineQueue = failedActions;
     await this.saveOfflineQueue();
+    await syncStatusStorage.setItem("sync_in_progress", false);
+    await syncStatusStorage.setItem("last_sync", new Date().toISOString());
 
     if (processedActions.length > 0) {
-      // Notify user about synced data
+      console.log(
+        `Successfully processed ${processedActions.length} offline actions`,
+      );
       this.showSyncNotification(processedActions.length);
+    }
+
+    if (failedActions.length > 0) {
+      console.warn(
+        `${failedActions.length} actions failed to process and will be retried later`,
+      );
     }
   }
 
@@ -198,14 +248,34 @@ export class OfflineStorageManager {
 
   // Setup online/offline event listeners
   private setupOnlineListener() {
-    window.addEventListener("online", () => {
+    window.addEventListener("online", async () => {
       console.log("Back online - processing offline queue");
-      this.processOfflineQueue();
+      await syncStatusStorage.setItem("connection_status", "online");
+      await syncStatusStorage.setItem("last_online", new Date().toISOString());
+
+      // Wait a moment for connection to stabilize
+      setTimeout(() => {
+        this.processOfflineQueue();
+      }, 1000);
     });
 
-    window.addEventListener("offline", () => {
+    window.addEventListener("offline", async () => {
       console.log("Gone offline - actions will be queued");
+      await syncStatusStorage.setItem("connection_status", "offline");
+      await syncStatusStorage.setItem("last_offline", new Date().toISOString());
     });
+
+    // Periodic sync attempt when online
+    setInterval(async () => {
+      if (this.isOnline() && this.offlineQueue.length > 0) {
+        const syncInProgress =
+          await syncStatusStorage.getItem("sync_in_progress");
+        if (!syncInProgress) {
+          console.log("Periodic sync check - processing offline queue");
+          this.processOfflineQueue();
+        }
+      }
+    }, 30000); // Check every 30 seconds
   }
 
   // Show sync notification
@@ -220,13 +290,24 @@ export class OfflineStorageManager {
   }
 
   // Get offline queue status
-  public getOfflineQueueStatus() {
+  public async getOfflineQueueStatus() {
+    const syncStatus = {
+      last_sync: await syncStatusStorage.getItem("last_sync"),
+      sync_in_progress: await syncStatusStorage.getItem("sync_in_progress"),
+      connection_status: await syncStatusStorage.getItem("connection_status"),
+      last_online: await syncStatusStorage.getItem("last_online"),
+      last_offline: await syncStatusStorage.getItem("last_offline"),
+    };
+
     return {
       count: this.offlineQueue.length,
       actions: this.offlineQueue.map((action) => ({
+        id: action.id,
         type: action.type,
         timestamp: action.timestamp,
       })),
+      syncStatus,
+      isOnline: this.isOnline(),
     };
   }
 
@@ -234,6 +315,38 @@ export class OfflineStorageManager {
   public async clearOfflineQueue() {
     this.offlineQueue = [];
     await this.saveOfflineQueue();
+    await syncStatusStorage.clear();
+    console.log("Offline queue and sync status cleared");
+  }
+
+  // Force sync (manual trigger)
+  public async forcSync() {
+    if (!this.isOnline()) {
+      throw new Error("Cannot sync while offline");
+    }
+
+    console.log("Force sync triggered");
+    await this.processOfflineQueue();
+  }
+
+  // Get storage usage statistics
+  public async getStorageStats() {
+    try {
+      const queueSize = JSON.stringify(this.offlineQueue).length;
+      const estimate = await navigator.storage?.estimate?.();
+
+      return {
+        queueSize: Math.round(queueSize / 1024), // KB
+        totalUsage: estimate ? Math.round(estimate.usage! / 1024 / 1024) : null, // MB
+        totalQuota: estimate ? Math.round(estimate.quota! / 1024 / 1024) : null, // MB
+        usagePercentage: estimate
+          ? Math.round((estimate.usage! / estimate.quota!) * 100)
+          : null,
+      };
+    } catch (error) {
+      console.error("Error getting storage stats:", error);
+      return null;
+    }
   }
 
   // Check if device is online

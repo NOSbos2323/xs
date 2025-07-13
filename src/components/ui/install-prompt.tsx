@@ -9,7 +9,7 @@ interface InstallPromptProps {
 }
 
 const InstallPrompt: React.FC<InstallPromptProps> = ({ onDismiss }) => {
-  const { isInstallable, promptInstall } = useInstallPrompt();
+  const { isInstallable, isInstalled, promptInstall } = useInstallPrompt();
   const [isDismissed, setIsDismissed] = React.useState(false);
 
   const handleInstall = async () => {
@@ -25,7 +25,8 @@ const InstallPrompt: React.FC<InstallPromptProps> = ({ onDismiss }) => {
     onDismiss?.();
   };
 
-  if (!isInstallable || isDismissed) {
+  // Don't show if app is already installed, not installable, or dismissed
+  if (!isInstallable || isInstalled || isDismissed) {
     return null;
   }
 
@@ -37,7 +38,7 @@ const InstallPrompt: React.FC<InstallPromptProps> = ({ onDismiss }) => {
         exit={{ opacity: 0, y: 50 }}
         className="fixed bottom-20 left-4 right-4 z-50 md:left-auto md:right-4 md:w-80"
       >
-        <div className="bg-gradient-to-r from-bluegray-800/95 to-bluegray-900/95 backdrop-blur-xl border border-bluegray-600/50 rounded-2xl p-4 shadow-2xl">
+        <div className="bg-gradient-to-r from-slate-800/95 to-slate-900/95 backdrop-blur-xl border border-slate-600/50 rounded-2xl p-4 shadow-2xl">
           <div className="flex items-start justify-between mb-3">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-gradient-to-r from-yellow-500 to-yellow-600 flex items-center justify-center">
@@ -77,7 +78,7 @@ const InstallPrompt: React.FC<InstallPromptProps> = ({ onDismiss }) => {
             <Button
               variant="outline"
               onClick={handleDismiss}
-              className="border-bluegray-600 text-gray-300 hover:bg-bluegray-700 text-sm h-9 px-4"
+              className="border-slate-600 text-gray-300 hover:bg-slate-700 text-sm h-9 px-4"
             >
               لاحقاً
             </Button>

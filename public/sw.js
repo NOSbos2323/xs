@@ -1,10 +1,10 @@
 // Enhanced Service Worker for Amino Gym PWA with complete offline support
-const CACHE_NAME = "amino-gym-v5";
-const STATIC_CACHE = "amino-gym-static-v5";
-const DYNAMIC_CACHE = "amino-gym-dynamic-v5";
-const IMAGE_CACHE = "amino-gym-images-v5";
-const API_CACHE = "amino-gym-api-v5";
-const FONT_CACHE = "amino-gym-fonts-v5";
+const CACHE_NAME = "amino-gym-v6";
+const STATIC_CACHE = "amino-gym-static-v6";
+const DYNAMIC_CACHE = "amino-gym-dynamic-v6";
+const IMAGE_CACHE = "amino-gym-images-v6";
+const API_CACHE = "amino-gym-api-v6";
+const FONT_CACHE = "amino-gym-fonts-v6";
 
 // Critical resources to cache immediately for offline functionality
 const CRITICAL_RESOURCES = [
@@ -13,6 +13,11 @@ const CRITICAL_RESOURCES = [
   "/home",
   "/login",
   "/payments",
+  "/reports",
+  "/settings",
+  "/attendance",
+  "/members",
+  "/dashboard",
   "/yacin-gym-logo.png",
   "/success-sound.mp3",
   "/manifest.json",
@@ -49,28 +54,39 @@ self.addEventListener("install", (event) => {
       // Cache critical resources
       caches.open(CACHE_NAME).then(async (cache) => {
         console.log("Caching critical resources for offline use");
-        try {
-          await cache.addAll(CRITICAL_RESOURCES);
-        } catch (error) {
-          console.warn("Some critical resources failed to cache:", error);
-          // Cache resources individually to avoid complete failure
-          for (const resource of CRITICAL_RESOURCES) {
-            try {
-              await cache.add(resource);
-            } catch (err) {
-              console.warn(`Failed to cache ${resource}:`, err);
+        // Cache resources individually to ensure better success rate
+        const cachePromises = CRITICAL_RESOURCES.map(async (resource) => {
+          try {
+            const response = await fetch(resource, {
+              cache: "no-cache",
+              credentials: "same-origin",
+            });
+            if (response.ok) {
+              await cache.put(resource, response);
+              console.log(`Successfully cached: ${resource}`);
+            } else {
+              console.warn(`Failed to fetch ${resource}: ${response.status}`);
             }
+          } catch (err) {
+            console.warn(`Failed to cache ${resource}:`, err);
           }
-        }
+        });
+        await Promise.allSettled(cachePromises);
       }),
       // Cache static assets
       caches.open(STATIC_CACHE).then(async (cache) => {
         console.log("Caching static assets");
-        try {
-          await cache.addAll(STATIC_ASSETS);
-        } catch (error) {
-          console.warn("Some static assets failed to cache:", error);
-        }
+        const staticPromises = STATIC_ASSETS.map(async (asset) => {
+          try {
+            const response = await fetch(asset, { cache: "no-cache" });
+            if (response.ok) {
+              await cache.put(asset, response);
+            }
+          } catch (error) {
+            console.warn(`Failed to cache static asset ${asset}:`, error);
+          }
+        });
+        await Promise.allSettled(staticPromises);
       }),
     ]).then(() => {
       console.log(
@@ -134,6 +150,16 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  // Skip requests to external domains (except for known CDNs)
+  if (
+    url.origin !== self.location.origin &&
+    !url.hostname.includes("unsplash.com") &&
+    !url.hostname.includes("dicebear.com") &&
+    !url.hostname.includes("googleapis.com")
+  ) {
+    return;
+  }
+
   // Handle different types of requests with offline-first strategies
   if (url.pathname.startsWith("/api/")) {
     // API requests - Cache First for offline support, with network update
@@ -158,9 +184,11 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(handleNavigation(request));
   } else if (
     url.pathname.includes("@") ||
-    url.pathname.includes("node_modules")
+    url.pathname.includes("node_modules") ||
+    url.pathname.includes("src/") ||
+    url.pathname.includes("assets/")
   ) {
-    // Module imports - Cache First
+    // Module imports and assets - Cache First
     event.respondWith(cacheFirstStrategy(request, STATIC_CACHE));
   } else {
     // Other requests - Offline First
@@ -228,38 +256,57 @@ async function handleNavigation(request) {
     (route) => url.pathname === route || url.pathname.startsWith(route + "/"),
   );
 
+  // For app routes, always serve from cache first for better offline experience
   if (isAppRoute) {
-    // Always serve the main app for SPA routes
     const cachedApp =
       (await caches.match("/")) || (await caches.match("/index.html"));
     if (cachedApp) {
+      // Update cache in background if online
+      if (navigator.onLine) {
+        fetch(request)
+          .then((response) => {
+            if (response.ok) {
+              caches.open(CACHE_NAME).then((cache) => {
+                cache.put(request, response.clone());
+              });
+            }
+          })
+          .catch(() => {});
+      }
       return cachedApp;
     }
   }
 
-  // Try network first for other navigation
+  // Try cache first, then network
+  const cachedResponse = await caches.match(request);
+  if (cachedResponse) {
+    return cachedResponse;
+  }
+
+  // Try network if not in cache
   try {
-    const networkResponse = await fetch(request);
+    const networkResponse = await fetch(request, {
+      cache: "no-cache",
+      credentials: "same-origin",
+    });
 
     if (networkResponse.ok) {
       const cache = await caches.open(CACHE_NAME);
       cache.put(request, networkResponse.clone());
+      return networkResponse;
     }
-
-    return networkResponse;
   } catch (error) {
-    // Fallback to cached version or main app
-    const cachedResponse =
-      (await caches.match(request)) ||
-      (await caches.match("/")) ||
-      (await caches.match("/index.html"));
-
-    if (cachedResponse) {
-      return cachedResponse;
-    }
-
-    return createOfflineResponse();
+    console.log("Network request failed:", error);
   }
+
+  // Final fallback - serve main app or offline page
+  const fallbackResponse =
+    (await caches.match("/")) || (await caches.match("/index.html"));
+  if (fallbackResponse) {
+    return fallbackResponse;
+  }
+
+  return createOfflineResponse();
 }
 
 // Create offline response with logo
