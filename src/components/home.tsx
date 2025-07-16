@@ -182,6 +182,14 @@ const HomePage = () => {
     if (loginSuccess) {
       localStorage.removeItem("loginSuccess");
     }
+
+    // تهيئة نظام إدارة الجلسات في الصفحة الرئيسية
+    import("@/services/sessionService").then(({ sessionService }) => {
+      // التحقق من سلامة البيانات
+      sessionService.validateDataIntegrity();
+      // إنشاء نسخة احتياطية عند دخول الصفحة الرئيسية
+      sessionService.createBackup();
+    });
   }, []);
 
   // Content lock timer effect - Enhanced for better accuracy and device compatibility
@@ -365,9 +373,14 @@ const HomePage = () => {
       const { payment, memberId } = await addSessionPayment("عضو مؤقت");
       const sessionPrice = getCurrentSessionPrice;
 
+      // حفظ فوري بعد إضافة حصة
+      import("@/services/sessionService").then(({ sessionService }) => {
+        sessionService.forceSave();
+      });
+
       toast({
         title: "تم بنجاح",
-        description: `تم تسجيل حصة واحدة - ${formatNumber(sessionPrice)} دج`,
+        description: `تم تسجيل حصة واحدة - ${formatNumber(sessionPrice)} دج وحفظ البيانات`,
       });
 
       playSuccessSound();
@@ -391,9 +404,15 @@ const HomePage = () => {
       try {
         const newMember = await addMember(memberData as Omit<Member, "id">);
         setShowAddMemberDialog(false);
+
+        // حفظ فوري بعد إضافة عضو جديد
+        import("@/services/sessionService").then(({ sessionService }) => {
+          sessionService.forceSave();
+        });
+
         toast({
           title: "تمت الإضافة",
-          description: `تم إضافة ${newMember.name} بنجاح`,
+          description: `تم إضافة ${newMember.name} بنجاح وحفظ البيانات`,
         });
         playSuccessSound();
       } catch (error) {

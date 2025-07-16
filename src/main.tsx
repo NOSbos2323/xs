@@ -24,6 +24,16 @@ if ("serviceWorker" in navigator) {
               console.log(
                 "New service worker available - app updated for better offline support",
               );
+              // Show update notification
+              if (
+                "Notification" in window &&
+                Notification.permission === "granted"
+              ) {
+                new Notification("Amino Gym - تحديث متاح", {
+                  body: "تم تحديث التطبيق لدعم أفضل للعمل بدون انترنت",
+                  icon: "/yacin-gym-logo.png",
+                });
+              }
             }
           });
         }
@@ -33,8 +43,26 @@ if ("serviceWorker" in navigator) {
       navigator.serviceWorker.addEventListener("message", (event) => {
         if (event.data && event.data.type === "OFFLINE_READY") {
           console.log("App is ready for offline use");
+          // Show offline ready notification
+          if (
+            "Notification" in window &&
+            Notification.permission === "granted"
+          ) {
+            new Notification("Amino Gym - جاهز للعمل بدون انترنت", {
+              body: "التطبيق الآن جاهز للعمل بالكامل بدون انترنت",
+              icon: "/yacin-gym-logo.png",
+            });
+          }
+        }
+        if (event.data && event.data.type === "BACKGROUND_SYNC") {
+          console.log("Background sync status:", event.data.payload);
         }
       });
+
+      // Request notification permission for offline features
+      if ("Notification" in window && Notification.permission === "default") {
+        Notification.requestPermission();
+      }
     } catch (error) {
       console.warn("Service Worker registration failed:", error);
     }

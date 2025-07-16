@@ -2,7 +2,7 @@
   "name": "Amino Gym",
   "short_name": "AminoGym",
   "description": "Progressive Web App for Amino Gym management",
-  "start_url": "/",
+  "start_url": "/home",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#000000",

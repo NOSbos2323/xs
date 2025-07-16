@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,7 @@ import {
   History,
   Calendar,
   TrendingUp,
+  Users,
 } from "lucide-react";
 import {
   Dialog,
@@ -31,13 +32,23 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { motion, AnimatePresence } from "framer-motion";
 import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+  PaginationEllipsis,
+} from "@/components/ui/pagination";
+import {
   Member,
   getAllMembers,
   markAttendance,
   addMember,
   updateMember,
   deleteMember,
-  searchAndFilterMembers,
+  searchAndFilterMembersPaginated,
+  getPaginatedMembers,
   MemberActivity,
   getRecentActivities,
 } from "@/services/memberService";
@@ -51,6 +62,10 @@ const MembersList = () => {
   const [filterStatus, setFilterStatus] = useState<string | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
+  const [pageSize] = useState(20); // Fixed page size for better performance
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isSearchActive, setIsSearchActive] = useState(false);
@@ -119,13 +134,32 @@ const MembersList = () => {
     }
   };
 
-  // Load members from database
+  // Debounced search to avoid too many API calls
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
+
   useEffect(() => {
-    const loadMembers = async () => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Load members from database with pagination
+  const loadMembers = useCallback(
+    async (page: number = 1) => {
       try {
         setLoading(true);
-        const data = await searchAndFilterMembers(searchQuery, filterStatus);
-        setMembers(data);
+        const result = await getPaginatedMembers(
+          page,
+          pageSize,
+          debouncedSearchQuery,
+          filterStatus,
+        );
+        setMembers(result.members);
+        setTotalPages(result.totalPages);
+        setTotalCount(result.totalCount);
+        setCurrentPage(page);
       } catch (error) {
         console.error("Error loading members:", error);
         toast({
@@ -136,10 +170,25 @@ const MembersList = () => {
       } finally {
         setLoading(false);
       }
-    };
+    },
+    [debouncedSearchQuery, filterStatus, pageSize],
+  );
 
-    loadMembers();
-  }, [searchQuery, filterStatus]);
+  // Load members when search/filter changes
+  useEffect(() => {
+    setCurrentPage(1); // Reset to first page when search/filter changes
+    loadMembers(1);
+  }, [loadMembers]);
+
+  // Handle page change
+  const handlePageChange = useCallback(
+    (page: number) => {
+      if (page >= 1 && page <= totalPages && page !== currentPage) {
+        loadMembers(page);
+      }
+    },
+    [loadMembers, totalPages, currentPage],
+  );
 
   const handleMarkAttendance = async (id: string) => {
     try {
@@ -211,12 +260,13 @@ const MembersList = () => {
   const handleAddMember = async (memberData: Partial<Member>) => {
     try {
       const newMember = await addMember(memberData as Omit<Member, "id">);
-      setMembers([...members, newMember]);
       setIsAddDialogOpen(false);
       toast({
         title: "تمت الإضافة",
         description: `تم إضافة ${newMember.name} بنجاح`,
       });
+      // Reload current page to show the new member
+      loadMembers(currentPage);
     } catch (error) {
       console.error("Error adding member:", error);
       toast({
@@ -236,12 +286,6 @@ const MembersList = () => {
         ...memberData,
       });
 
-      setMembers(
-        members.map((member) =>
-          member.id === updatedMember.id ? updatedMember : member,
-        ),
-      );
-
       setIsEditDialogOpen(false);
       setSelectedMember(undefined);
 
@@ -249,6 +293,9 @@ const MembersList = () => {
         title: "تم التحديث",
         description: `تم تحديث بيانات ${updatedMember.name} بنجاح`,
       });
+
+      // Reload current page to show updated data
+      loadMembers(currentPage);
     } catch (error) {
       console.error("Error updating member:", error);
       toast({
@@ -264,11 +311,13 @@ const MembersList = () => {
 
     try {
       await deleteMember(id);
-      setMembers(members.filter((member) => member.id !== id));
       toast({
         title: "تم الحذف",
         description: "تم حذف العضو بنجاح",
       });
+
+      // Reload current page after deletion
+      loadMembers(currentPage);
     } catch (error) {
       console.error("Error deleting member:", error);
       toast({
@@ -372,9 +421,8 @@ const MembersList = () => {
       // Play success sound
       playSuccessSound();
 
-      // Refresh the members list to update statistics
-      const data = await searchAndFilterMembers(searchQuery, filterStatus);
-      setMembers(data);
+      // Refresh the current page to update statistics
+      loadMembers(currentPage);
     } catch (error) {
       console.error("Error adding session:", error);
       const errorMessage =
@@ -617,6 +665,24 @@ const MembersList = () => {
         </div>
       </div>
 
+      {/* Statistics Summary */}
+      {!loading && totalCount > 0 && (
+        <div className="mb-6 p-4 bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-lg border border-blue-500/20">
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div className="flex items-center gap-2">
+              <Users className="h-5 w-5 text-blue-400" />
+              <span className="text-blue-400 font-medium">
+                إجمالي الأعضاء: {formatNumber(totalCount)}
+              </span>
+            </div>
+            <div className="text-sm text-gray-400">
+              الصفحة {currentPage} من {totalPages} (
+              {formatNumber(members.length)} عضو في هذه الصفحة)
+            </div>
+          </div>
+        </div>
+      )}
+
       {loading ? (
         <div className="flex justify-center items-center py-10 sm:py-20">
           <div className="w-10 h-10 sm:w-16 sm:h-16 border-4 border-blue-400 border-t-transparent rounded-full animate-spin" />
@@ -708,7 +774,82 @@ const MembersList = () => {
 
       {!loading && members.length === 0 && (
         <div className="text-center py-12 bg-bluegray-700/30 backdrop-blur-md rounded-lg">
-          <p className="text-gray-300">لا يوجد أعضاء مطابقين لمعايير البحث</p>
+          <Users className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+          <p className="text-gray-300 text-lg mb-2">
+            لا يوجد أعضاء مطابقين لمعايير البحث
+          </p>
+          {(debouncedSearchQuery || filterStatus) && (
+            <p className="text-gray-400 text-sm">
+              جرب تغيير معايير البحث أو الفلترة
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Pagination */}
+      {!loading && totalPages > 1 && (
+        <div className="mt-8 flex justify-center">
+          <Pagination>
+            <PaginationContent className="bg-bluegray-800/50 backdrop-blur-xl rounded-lg border border-bluegray-600/50 p-2">
+              <PaginationItem>
+                <PaginationPrevious
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  className={`text-white hover:bg-bluegray-600 border-bluegray-600 ${
+                    currentPage === 1
+                      ? "opacity-50 cursor-not-allowed"
+                      : "cursor-pointer"
+                  }`}
+                />
+              </PaginationItem>
+
+              {/* Page numbers */}
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let pageNum;
+                if (totalPages <= 5) {
+                  pageNum = i + 1;
+                } else if (currentPage <= 3) {
+                  pageNum = i + 1;
+                } else if (currentPage >= totalPages - 2) {
+                  pageNum = totalPages - 4 + i;
+                } else {
+                  pageNum = currentPage - 2 + i;
+                }
+
+                return (
+                  <PaginationItem key={pageNum}>
+                    <PaginationLink
+                      onClick={() => handlePageChange(pageNum)}
+                      isActive={currentPage === pageNum}
+                      className={`text-white hover:bg-bluegray-600 border-bluegray-600 cursor-pointer ${
+                        currentPage === pageNum
+                          ? "bg-gradient-to-r from-yellow-500 to-blue-600 border-yellow-400"
+                          : ""
+                      }`}
+                    >
+                      {pageNum}
+                    </PaginationLink>
+                  </PaginationItem>
+                );
+              })}
+
+              {totalPages > 5 && currentPage < totalPages - 2 && (
+                <PaginationItem>
+                  <PaginationEllipsis className="text-gray-400" />
+                </PaginationItem>
+              )}
+
+              <PaginationItem>
+                <PaginationNext
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  className={`text-white hover:bg-bluegray-600 border-bluegray-600 ${
+                    currentPage === totalPages
+                      ? "opacity-50 cursor-not-allowed"
+                      : "cursor-pointer"
+                  }`}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
         </div>
       )}
 

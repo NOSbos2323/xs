@@ -43,8 +43,16 @@ export const getAllMembers = async (): Promise<Member[]> => {
   try {
     await initDB();
     const members: Member[] = [];
+    const seenIds = new Set<string>(); // Track unique member IDs
+
     await membersDB.iterate((value: Member) => {
-      if (value && typeof value === "object" && value.id) {
+      if (
+        value &&
+        typeof value === "object" &&
+        value.id &&
+        !seenIds.has(value.id)
+      ) {
+        seenIds.add(value.id);
         members.push(value);
       }
     });
@@ -52,6 +60,86 @@ export const getAllMembers = async (): Promise<Member[]> => {
   } catch (error) {
     console.error("Error getting all members:", error);
     return [];
+  }
+};
+
+// Get paginated members for better performance
+export const getPaginatedMembers = async (
+  page: number = 1,
+  pageSize: number = 20,
+  searchQuery: string = "",
+  filterStatus: string | null = null,
+): Promise<{ members: Member[]; totalCount: number; totalPages: number }> => {
+  try {
+    await initDB();
+    const allMembers: Member[] = [];
+    const seenIds = new Set<string>(); // Track unique member IDs
+
+    // Get all members first and deduplicate
+    await membersDB.iterate((value: Member) => {
+      if (
+        value &&
+        typeof value === "object" &&
+        value.id &&
+        !seenIds.has(value.id)
+      ) {
+        seenIds.add(value.id);
+        allMembers.push(value);
+      }
+    });
+
+    // Sort members
+    const sortedMembers = allMembers.sort((a, b) =>
+      a.name.localeCompare(b.name, "ar"),
+    );
+
+    // Apply filters
+    let filteredMembers = sortedMembers;
+
+    if (searchQuery) {
+      filteredMembers = filteredMembers.filter((member) =>
+        member.name.toLowerCase().includes(searchQuery.toLowerCase()),
+      );
+    }
+
+    if (filterStatus) {
+      filteredMembers = filteredMembers.filter(
+        (member) => member.membershipStatus === filterStatus,
+      );
+    }
+
+    // Calculate pagination
+    const totalCount = filteredMembers.length;
+    const totalPages = Math.ceil(totalCount / pageSize);
+    const startIndex = (page - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+
+    // Get page data
+    const paginatedMembers = filteredMembers.slice(startIndex, endIndex);
+
+    return {
+      members: paginatedMembers,
+      totalCount,
+      totalPages,
+    };
+  } catch (error) {
+    console.error("Error getting paginated members:", error);
+    return { members: [], totalCount: 0, totalPages: 0 };
+  }
+};
+
+// Get members count for statistics
+export const getMembersCount = async (): Promise<number> => {
+  try {
+    await initDB();
+    let count = 0;
+    await membersDB.iterate(() => {
+      count++;
+    });
+    return count;
+  } catch (error) {
+    console.error("Error getting members count:", error);
+    return 0;
   }
 };
 
@@ -296,19 +384,24 @@ export const filterMembersByStatus = async (
   return allMembers.filter((member) => member.membershipStatus === status);
 };
 
-// Search and filter combined
+// Search and filter combined (optimized for large datasets)
 export const searchAndFilterMembers = async (
   query: string,
   status: string | null,
 ): Promise<Member[]> => {
-  const allMembers = await getAllMembers();
-  return allMembers.filter((member) => {
-    const matchesSearch = member.name
-      .toLowerCase()
-      .includes(query.toLowerCase());
-    const matchesFilter = status ? member.membershipStatus === status : true;
-    return matchesSearch && matchesFilter;
-  });
+  // Use pagination for better performance with large datasets
+  const result = await getPaginatedMembers(1, 1000, query, status);
+  return result.members;
+};
+
+// Optimized search and filter with pagination
+export const searchAndFilterMembersPaginated = async (
+  query: string,
+  status: string | null,
+  page: number = 1,
+  pageSize: number = 20,
+): Promise<{ members: Member[]; totalCount: number; totalPages: number }> => {
+  return await getPaginatedMembers(page, pageSize, query, status);
 };
 
 // Initialize activities database with better configuration

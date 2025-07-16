@@ -32,6 +32,12 @@ const LoginPage = () => {
 
   // Check if user is already logged in and load remembered credentials
   useEffect(() => {
+    // تهيئة نظام إدارة الجلسات
+    import("@/services/sessionService").then(({ sessionService }) => {
+      // التحقق من سلامة البيانات عند تحميل الصفحة
+      sessionService.validateDataIntegrity();
+    });
+
     const user = localStorage.getItem("user");
     if (user) {
       try {
@@ -131,11 +137,20 @@ const LoginPage = () => {
         },
         loginTime: new Date().toISOString(),
         loginTimestamp: currentTime,
+        sessionPersistent: true, // علامة للجلسة المستمرة
+        autoSaveEnabled: true, // تفعيل الحفظ التلقائي
       };
 
       // Set login data - preserve existing timer if content is not unlocked
       localStorage.setItem("user", JSON.stringify(userData));
       localStorage.setItem("loginSuccess", "true");
+
+      // تهيئة نظام إدارة الجلسات بعد تسجيل الدخول
+      import("@/services/sessionService").then(({ sessionService }) => {
+        sessionService.saveSetting("userLoggedIn", true);
+        sessionService.saveSetting("loginTime", currentTime);
+        sessionService.createBackup();
+      });
 
       // Only reset timer if content was previously unlocked or no timer exists
       const isUnlocked = localStorage.getItem("contentUnlocked");
